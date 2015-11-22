@@ -6,18 +6,32 @@ import datetime
 import os
 import json
 
+
+#read the file and extract the json/defaultdict
+f = open("PlayerStats.txt","r")
+lastModifiedStr = f.readline()
+#print(lastModifiedStr)
+[_,dateString] = lastModifiedStr.split(": ")
+[month, day, year] = dateString.split("/")
+lastModifiedDate = datetime.date(int(year),int(month),int(day))
+#print(lastModifiedDate)
+
+currentDict = json.loads(f.readline())
+print(currentDict)
+
+f.close()
+
+#today's date to label when writing the json
 today = datetime.date.today()
 todayStr = str(today.month) + "/" + str(today.day) + "/" + str(today.year)
 
 
 
-
+#use teamURLs to access their schedules
+#use team schedules 
 teamsPage = requests.get("http://espn.go.com/nba/teams")
 teamsTree = html.fromstring(teamsPage.content)
-
 teamsURLs = teamsTree.xpath("//a[@class='bi']/@href")
-
-
 gameids = set([])
 for teamURL in teamsURLs:
     [a,b,c] = teamURL.partition("_")
@@ -28,8 +42,7 @@ for teamURL in teamsURLs:
     gameids |= set(teamGameidList)
 
 
-playerMap = defaultdict(list)
-
+#converts position to number
 position_number_dict = { ", PG" : 1,
         ", SG" : 2,
         ", SF" : 3,
@@ -37,6 +50,7 @@ position_number_dict = { ", PG" : 1,
         ", C" : 5,
     }
 
+#converts team name to number
 team_dict = {
         "Boston Celtics" : 1,
         "Brooklyn Nets" : 2,
@@ -70,6 +84,7 @@ team_dict = {
         "Utah Jazz" : 30
     }
 
+#converts month name to number
 monthdict = {
         "January" : 1,
         "February" : 2,
@@ -85,9 +100,8 @@ monthdict = {
         "December" : 12
     }
 
-def team_convert(str):
-    return team_dict[str]
 
+#takes list of string statistics and converts to numbers
 def playerStatsConvert(statsList):
     
     positionNum = position_number_dict[statsList[0]]
@@ -95,6 +109,7 @@ def playerStatsConvert(statsList):
     if("DNP" in statsList[1]):
         return [positionNum, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 
+    #strings #make-#attempted split into 2 int categories
     mins = int(statsList[1])
     [fgmstr,fgastr] = statsList[2].split("-")
     fgm = int(fgmstr)
@@ -115,6 +130,7 @@ def playerStatsConvert(statsList):
 
     return [positionNum, mins, fgm, fga, tpm, tpa, ftm, fta] + restOfList
 
+#takes string with date and time game info and returns this info in int categories
 def date_time_convert(str):
     [a,b] = str.split(":")
     time = int(a) + float(b[0:2])/60
@@ -124,13 +140,17 @@ def date_time_convert(str):
     [monthStr,dayStr] = monthDayStr.split(" ")
     return [monthdict[monthStr], int(dayStr), int(yearStr), time]
 
+
+#use defaultdict to map playerids to game stats
+playerMap = defaultdict(list)
+
 for gameid in sorted(gameids):
     gameBoxScoreURL = "http://espn.go.com/nba/boxscore?gameId=" + gameid;
     boxScorePage = requests.get(gameBoxScoreURL)
     boxScoreTree = html.fromstring(boxScorePage.content)
 
 
-
+    #first get game data not specific to each player (time,date,score,team numbers etc)
     gameDataList = []
     game_time_info = boxScoreTree.xpath("//div[@class='game-time-location']/p/text()")[0]
     #print(game_time_info)
@@ -142,24 +162,21 @@ for gameid in sorted(gameids):
     #print(awayName)
 
 
-
+    #keep track of which players were on the away team and which were on the home team
     [awayTeam] = boxScoreTree.xpath("//table/thead[position()=1]/tr[@class='team-color-strip']/th/text()")
-    awayTeamNum = team_convert(awayTeam)
+    awayTeamNum = team_dict[awayTeam]
     awayPlayeridList = boxScoreTree.xpath("//table/tbody[position()=1 or position()=2]/tr[contains(@class,'player-46')]/@class")
     awayPlayeridList = [x.split("player-46-")[1] for x in awayPlayeridList]
     #print(awayPlayeridList)
 
     [homeTeam] = boxScoreTree.xpath("//table/thead[position()=4]/tr[@class='team-color-strip']/th/text()")
-    homeTeamNum = team_convert(homeTeam)
+    homeTeamNum = team_dict[homeTeam]
     homePlayeridList = boxScoreTree.xpath("//table/tbody[position()=4 or position()=5]/tr[contains(@class,'player-46')]/@class")
     homePlayeridList = [x.split("player-46-")[1] for x in homePlayeridList]
     #print(homePlayeridList)
 
 
-
-
-
-
+    #gets player stats for away players and appends that to the game stats
     for playerid in awayPlayeridList:
         xPathString = "//tr[contains(@class,'player-46-" + playerid + "')]/*/text()"
 
@@ -176,7 +193,7 @@ for gameid in sorted(gameids):
 
         playerMap[playerid].append(gameStatsList+playerStatsList)
 
-    
+    #gets player stats for home players and appends that to the game stats
     for playerid in homePlayeridList:
         xPathString = "//tr[contains(@class,'player-46-" + playerid + "')]/*/text()"
 
@@ -195,7 +212,7 @@ for gameid in sorted(gameids):
 
 
 
-
+#write default dict into file -- default dict in json format
 f = open("PlayerStats.txt","w")
 f.write("Last Modified: " + todayStr + "\n")
 f.write(json.dumps(playerMap))
