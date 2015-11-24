@@ -2,44 +2,12 @@
 import requests
 import pandas as pd
 from collections import defaultdict
+from collections import OrderedDict
 import datetime
 import os
 import json
 
 
-#read the file and extract the json/defaultdict
-f = open("PlayerStats.txt","r")
-lastModifiedStr = f.readline()
-#print(lastModifiedStr)
-[_,dateString] = lastModifiedStr.split(": ")
-[month, day, year] = dateString.split("/")
-lastModifiedDate = datetime.date(int(year),int(month),int(day))
-#print(lastModifiedDate)
-
-currentDict = json.loads(f.readline())
-print(currentDict)
-
-f.close()
-
-#today's date to label when writing the json
-today = datetime.date.today()
-todayStr = str(today.month) + "/" + str(today.day) + "/" + str(today.year)
-
-
-
-#use teamURLs to access their schedules
-#use team schedules 
-teamsPage = requests.get("http://espn.go.com/nba/teams")
-teamsTree = html.fromstring(teamsPage.content)
-teamsURLs = teamsTree.xpath("//a[@class='bi']/@href")
-gameids = set([])
-for teamURL in teamsURLs:
-    [a,b,c] = teamURL.partition("_")
-    scheduleURL = a + "schedule/" + b + c;
-    schedulePage = requests.get(scheduleURL)
-    scheduleTree = html.fromstring(schedulePage.content)
-    teamGameidList = [x.split("=")[1] for x in scheduleTree.xpath("//li[@class='score']/a/@href")]
-    gameids |= set(teamGameidList)
 
 
 #converts position to number
@@ -85,20 +53,103 @@ team_dict = {
     }
 
 #converts month name to number
+#has full months and also abbreviated months for months during the NBA season
 monthdict = {
-        "January" : 1,
+        "January": 1,
+        "Jan" : 1,
         "February" : 2,
+        "Feb" : 2,
         "March" : 3,
+        "Mar" : 3,
         "April" : 4,
+        "Apr" : 4,
         "May" : 5,
         "June" : 6,
         "July" : 7,
         "August" : 8,
         "September" : 9,
         "October" : 10,
+        "Oct" : 10,
         "November" : 11,
-        "December" : 12
+        "Nov" : 11,
+        "December" : 12,
+        "Dec" : 12
     }
+
+
+
+
+
+
+#read the file and extract the json/defaultdict
+f = open("PlayerStats.txt","r")
+lastModifiedStr = f.readline()
+
+#checks if file is how it should be formatted
+# (Last Modified: ... \n playerStats Dictionary)
+# if not formatted properly, it will overwrite whole file with stats from whole season
+if(not "Last Modified:" in lastModifiedStr):
+    currentMap = defaultdict(OrderedDict)
+    #before the season started so it will get all the data from this season
+    lastModifiedDate = datetime.date(2015, 10, 1)
+else:
+    #print(lastModifiedStr)
+    [_,dateString] = lastModifiedStr.split(": ")
+    [month, day, year] = dateString.split("/")
+    lastModifiedDate = datetime.date(int(year),int(month),int(day))
+    #print(lastModifiedDate)
+
+    currentMap = json.loads(f.readline())
+    #print(currentMap)
+
+f.close()
+
+#today's date to label when writing the json
+today = datetime.date.today()
+todayStr = str(today.month) + "/" + str(today.day) + "/" + str(today.year)
+
+lastModifiedDate = datetime.date(2015,11,1)
+
+def extractNewGameIDs(gameidsList,dateList):
+    #print(lastModifiedDate)
+    i=0
+    for i in range(0,len(dateList)):
+        
+        dateStr = dateList[i]
+        [_,monthAbbrStr,dayStr] = dateStr.split(" ")
+        monthInt = monthdict[monthAbbrStr]
+        dayInt = int(dayStr)
+        #FIND BETTER SOLUTION FOR THIS
+        if(monthInt > 6):
+            yearInt = 2015
+        else:
+            yearInt = 2016
+        #print(datetime.date(yearInt,monthInt,dayInt))
+        date = datetime.date(yearInt,monthInt,dayInt)
+        if(lastModifiedDate <= date):
+            break
+    #print(str(i))
+    return gameidsList[i:]
+
+#use teamURLs to access their schedules
+#use team schedules 
+teamsPage = requests.get("http://espn.go.com/nba/teams")
+teamsTree = html.fromstring(teamsPage.content)
+teamsURLs = teamsTree.xpath("//a[@class='bi']/@href")
+gameids = set([])
+for teamURL in teamsURLs:
+    [a,b,c] = teamURL.partition("_")
+    scheduleURL = a + "schedule/" + b + c;
+    schedulePage = requests.get(scheduleURL)
+    scheduleTree = html.fromstring(schedulePage.content)
+    teamGameidList = [x.split("=")[1] for x in scheduleTree.xpath("//li[@class='score']/a/@href")]
+    gameDateList = scheduleTree.xpath("//tr[td/ul/li/@class='score']/td[position() = 1]/text()")
+    newGameIDs = extractNewGameIDs(teamGameidList,gameDateList)
+    #print(newGameIDs)
+    gameids |= set(newGameIDs)
+
+
+
 
 
 #takes list of string statistics and converts to numbers
@@ -142,7 +193,9 @@ def date_time_convert(str):
 
 
 #use defaultdict to map playerids to game stats
-playerMap = defaultdict(list)
+playerMap = defaultdict(OrderedDict)
+#playerMap = OrderedDict()
+
 
 for gameid in sorted(gameids):
     gameBoxScoreURL = "http://espn.go.com/nba/boxscore?gameId=" + gameid;
@@ -190,8 +243,11 @@ for gameid in sorted(gameids):
         playerStatsList = playerStatsConvert(playerStatsList)
        # print(playerStatsList)
        # playerMap[playerid].append(gameid)
-
-        playerMap[playerid].append(gameStatsList+playerStatsList)
+       # print(gameStatsList+playerStatsList)
+        
+        playerMap[playerid][gameid]=(gameStatsList+playerStatsList)
+        #playerMap[playerid] = OrderedDict({gameid:(gameStatsList+playerStatsList)})
+        
 
     #gets player stats for home players and appends that to the game stats
     for playerid in homePlayeridList:
@@ -208,14 +264,25 @@ for gameid in sorted(gameids):
        # print(playerStatsList)
        # playerMap[playerid].append(gameid)
 
-        playerMap[playerid].append(gameStatsList+playerStatsList)
+        playerMap[playerid][gameid]=(gameStatsList+playerStatsList)
+        #playerMap[playerid] = OrderedDict({gameid:(gameStatsList+playerStatsList)})
 
 
+
+#need to UNION currentMap(defaultdict in file) and playerMap(recent games)
+for playerid,orderedDict in playerMap.items():
+
+    for gameid,statList in orderedDict.items():
+        #TODO: look to make this more efficient
+        if(not gameid in currentMap[playerid]):
+            currentMap[playerid][gameid] = statList
+
+print(json.dumps(currentMap))
 
 #write default dict into file -- default dict in json format
 f = open("PlayerStats.txt","w")
 f.write("Last Modified: " + todayStr + "\n")
-f.write(json.dumps(playerMap))
+f.write(json.dumps(currentMap))
 f.close()
 #print(playerMap)
 #f = open(playerDataFilePath, "w")
