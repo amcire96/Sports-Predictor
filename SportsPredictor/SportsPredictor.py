@@ -3,12 +3,14 @@ import requests
 import pandas as pd
 from collections import defaultdict
 from collections import OrderedDict
+from collections import deque
 import datetime
 import os
 import json
+import numpy as np
 
 
-
+print("hello1")
 
 #converts position to number
 position_number_dict = { ", PG" : 1,
@@ -96,10 +98,12 @@ else:
     #print(lastModifiedStr)
     [_,dateString] = lastModifiedStr.split(": ")
     [month, day, year] = dateString.split("/")
+    #print("month %d, day %d, year %d" % (int(month),int(day),int(year)))
     lastModifiedDate = datetime.date(int(year),int(month),int(day))
     #print(lastModifiedDate)
-
-    currentMap = json.loads(f.readline())
+    #mydict = lambda: defaultdict(mydict)
+    #currentMap = mydict()
+    currentMap = json.loads(f.readline(),object_pairs_hook=OrderedDict)
     #print(currentMap)
 
 f.close()
@@ -108,9 +112,13 @@ f.close()
 today = datetime.date.today()
 todayStr = str(today.month) + "/" + str(today.day) + "/" + str(today.year)
 
-lastModifiedDate = datetime.date(2015,11,1)
+#lastModifiedDate = datetime.date(2015,11,1)
+
+print("hello2")
 
 def extractNewGameIDs(gameidsList,dateList):
+    #print(gameidsList)
+    #print(dateList)
     #print(lastModifiedDate)
     i=0
     for i in range(0,len(dateList)):
@@ -126,10 +134,13 @@ def extractNewGameIDs(gameidsList,dateList):
             yearInt = 2016
         #print(datetime.date(yearInt,monthInt,dayInt))
         date = datetime.date(yearInt,monthInt,dayInt)
+       # print(date)
+        #print(lastModifiedDate)
         if(lastModifiedDate <= date):
+            #print(date)
             break
     #print(str(i))
-    return gameidsList[i:]
+    return gameidsList[i+1:]
 
 #use teamURLs to access their schedules
 #use team schedules 
@@ -144,6 +155,7 @@ for teamURL in teamsURLs:
     scheduleTree = html.fromstring(schedulePage.content)
     teamGameidList = [x.split("=")[1] for x in scheduleTree.xpath("//li[@class='score']/a/@href")]
     gameDateList = scheduleTree.xpath("//tr[td/ul/li/@class='score']/td[position() = 1]/text()")
+
     newGameIDs = extractNewGameIDs(teamGameidList,gameDateList)
     #print(newGameIDs)
     gameids |= set(newGameIDs)
@@ -197,7 +209,11 @@ playerMap = defaultdict(OrderedDict)
 #playerMap = OrderedDict()
 
 
+print(gameids)
+
+
 for gameid in sorted(gameids):
+    #print(gameid)
     gameBoxScoreURL = "http://espn.go.com/nba/boxscore?gameId=" + gameid;
     boxScorePage = requests.get(gameBoxScoreURL)
     boxScoreTree = html.fromstring(boxScorePage.content)
@@ -267,24 +283,33 @@ for gameid in sorted(gameids):
         playerMap[playerid][gameid]=(gameStatsList+playerStatsList)
         #playerMap[playerid] = OrderedDict({gameid:(gameStatsList+playerStatsList)})
 
-
+#print(type(currentMap))
 
 #need to UNION currentMap(defaultdict in file) and playerMap(recent games)
 for playerid,orderedDict in playerMap.items():
 
     for gameid,statList in orderedDict.items():
         #TODO: look to make this more efficient
-        if(not gameid in currentMap[playerid]):
-            currentMap[playerid][gameid] = statList
+        #if(not gameid in currentMap[playerid] or not playerid in currentMap):
+        if(not playerid in currentMap):
+            currentMap[playerid] = OrderedDict()
+        #print(type(gameid))
+        currentMap[playerid][gameid] = statList
 
-print(json.dumps(currentMap))
+#print(json.dumps(currentMap))
+
+print("hello4")
 
 #write default dict into file -- default dict in json format
 f = open("PlayerStats.txt","w")
 f.write("Last Modified: " + todayStr + "\n")
-f.write(json.dumps(currentMap))
-f.close()
-#print(playerMap)
+f.write(json.dumps(currentMap,sort_keys=True))
+
+
+print("hello5")
+
+
+print(playerMap)
 #f = open(playerDataFilePath, "w")
 #for playerid in playerMap.keys():
 
@@ -293,3 +318,61 @@ f.close()
     #print(playerMap[playerid])
 
 #f.close()
+
+
+#gameStatsLists are restricted by their maxlen variables
+#if size of gameStatsList < desired number of games, then just avg what you have in gameStatsList
+#   e.g. when gen features for 2nd game of season, all lists will just be stats from 1st game
+def avgStats(gameStatsList):
+    gameCount = len(gameStatsList)
+    return (np.array([sum(x) for x in zip(*gameStatsList)]) / gameCount).tolist()
+    
+
+
+def generate_features(stats):
+     #featureList = OrderedDict(list)
+     featureList = deque([])
+     
+     for playerid,orderedDict in currentMap.items():
+         
+         #prevGameIds = deque([])
+         #19 stats for each game
+         seasonGameStatsTotals = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+         prevGameStats = []
+         #use deques with max size to keep track of most recent n games
+         prev2GamesStats = deque([],2)
+         prev3GamesStats = deque([],3)
+         prev5GamesStats = deque([],5)
+         prev10GamesStats = deque([],10)
+         prev20GamesStats = deque([],20)
+
+         count = 0
+         for gameid,statList in orderedDict.items():
+             gameFeature = [int(playerid)] + [int(gameid)] + statList[:7]
+
+             #don't do anything for the first game
+             if (count != 0):
+                 gameFeature += prevGameStats
+                 gameFeature += avgStats(prev2GamesStats)
+                 gameFeature += avgStats(prev3GamesStats)
+                 gameFeature += avgStats(prev5GamesStats)
+                 gameFeature += avgStats(prev10GamesStats)
+                 gameFeature += avgStats(prev20GamesStats)
+                 gameFeature += (np.array(seasonGameStatsTotals) / count).tolist()
+                 featureList.append(gameFeature)
+
+             count+=1
+             #prevGameIds += [gameid]     
+             prevGameStats = statList[7:]    
+             prev2GamesStats.append(statList[7:])
+             prev3GamesStats.append(statList[7:])
+             prev5GamesStats.append(statList[7:])
+             prev10GamesStats.append(statList[7:])
+             prev20GamesStats.append(statList[7:])
+             seasonGameStatsTotals = [x + y for x, y in zip(seasonGameStatsTotals,statList[7:])]
+    
+     return list(featureList)
+
+f.write("\n")
+f.write(json.dumps(generate_features(currentMap)))
+f.close()
