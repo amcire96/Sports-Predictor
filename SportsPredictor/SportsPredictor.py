@@ -298,7 +298,7 @@ def playerStatsConvert(statsList):
     
     positionNum = position_number_dict[statsList[0]]
 
-    if("DNP" in statsList[1]):
+    if("DNP COACH'S DECISION" in statsList[1]):
         return [positionNum, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 
     #strings #make-#attempted split into 2 int categories
@@ -312,8 +312,8 @@ def playerStatsConvert(statsList):
     tpa = int(tpastr)
 
     [ftmstr,ftastr] = statsList[4].split("-")
-    ftm = int(fgmstr)
-    fta = int(fgastr)
+    ftm = int(ftmstr)
+    fta = int(ftastr)
 
     restOfList = []
     for i in range(5,15):
@@ -346,67 +346,79 @@ def createPlayerMap(gameids,currentMap):
 
         #first get game data not specific to each player (time,date,score,team numbers etc)
         gameDataList = []
-        game_time_info = boxScoreTree.xpath("//div[@class='game-time-location']/p/text()")[0]
-        #print(game_time_info)
+        #print(gameid)
 
-        [awayName,awayScore] = boxScoreTree.xpath("//div[@class='team away']/div/h3/*/text()")
-        [homeName,homeScore] = boxScoreTree.xpath("//div[@class='team home']/div/h3/*/text()")
-        scoreDifference = int(awayScore) - int(homeScore)
-        #print(scoreDifference)
-        #print(awayName)
+        try:
+            game_time_info = boxScoreTree.xpath("//div[@class='game-time-location']/p/text()")[0]
+            #print(game_time_info)
 
-
-        #keep track of which players were on the away team and which were on the home team
-        [awayTeam] = boxScoreTree.xpath("//table/thead[position()=1]/tr[@class='team-color-strip']/th/text()")
-        awayTeamNum = team_dict[awayTeam]
-        awayPlayeridList = boxScoreTree.xpath("//table/tbody[position()=1 or position()=2]/tr[contains(@class,'player-46')]/@class")
-        awayPlayeridList = [x.split("player-46-")[1] for x in awayPlayeridList]
-        #print(awayPlayeridList)
-
-        [homeTeam] = boxScoreTree.xpath("//table/thead[position()=4]/tr[@class='team-color-strip']/th/text()")
-        homeTeamNum = team_dict[homeTeam]
-        homePlayeridList = boxScoreTree.xpath("//table/tbody[position()=4 or position()=5]/tr[contains(@class,'player-46')]/@class")
-        homePlayeridList = [x.split("player-46-")[1] for x in homePlayeridList]
-        #print(homePlayeridList)
+            [awayName,awayScore] = boxScoreTree.xpath("//div[@class='team away']/div/h3/*/text()")
+            [homeName,homeScore] = boxScoreTree.xpath("//div[@class='team home']/div/h3/*/text()")
+            scoreDifference = int(awayScore) - int(homeScore)
+            #print(scoreDifference)
+            #print(awayName)
 
 
-        #gets player stats for away players and appends that to the game stats
-        for playerid in awayPlayeridList:
-            xPathString = "//tr[contains(@class,'player-46-" + playerid + "')]/*/text()"
+            #keep track of which players were on the away team and which were on the home team
+            [awayTeam] = boxScoreTree.xpath("//table/thead[position()=1]/tr[@class='team-color-strip']/th/text()")
+            awayTeamNum = team_dict[awayTeam]
+            awayPlayeridList = boxScoreTree.xpath("//table/tbody[position()=1 or position()=2]/tr[contains(@class,'player-46')]/@class")
+            awayPlayeridList = [x.split("player-46-")[1] for x in awayPlayeridList]
+            #print(awayPlayeridList)
 
-            gameStatsList = []
-            # stores own team's number and also the opposing team's number
-            # 0 for away team and score difference is calc away score - home score
-            gameStatsList += date_time_convert(game_time_info) + [awayTeamNum, homeTeamNum] + [0,scoreDifference] 
+            [homeTeam] = boxScoreTree.xpath("//table/thead[position()=4]/tr[@class='team-color-strip']/th/text()")
+            homeTeamNum = team_dict[homeTeam]
+            homePlayeridList = boxScoreTree.xpath("//table/tbody[position()=4 or position()=5]/tr[contains(@class,'player-46')]/@class")
+            homePlayeridList = [x.split("player-46-")[1] for x in homePlayeridList]
+            #print(homePlayeridList)
+
+
+            #gets player stats for away players and appends that to the game stats
+            for playerid in awayPlayeridList:
+                xPathString = "//tr[contains(@class,'player-46-" + playerid + "')]/*/text()"
+
+                gameStatsList = []
+                # stores own team's number and also the opposing team's number
+                # 0 for away team and score difference is calc away score - home score
+                gameStatsList += date_time_convert(game_time_info) + [awayTeamNum, homeTeamNum] + [0,scoreDifference] 
+        
+                playerStatsList = boxScoreTree.xpath(xPathString)
+
+                if("DNP" not in playerStatsList[1] or "DNP COACH'S DECISION" in playerStatsList[1]):
+       
+                
+                    playerStatsList = playerStatsConvert(playerStatsList)
+                   # print(playerStatsList)
+                   # playerMap[playerid].append(gameid)
+                   # print(gameStatsList+playerStatsList)
+        
+                    playerMap[playerid][gameid]=(gameStatsList+playerStatsList)
+                    #playerMap[playerid] = OrderedDict({gameid:(gameStatsList+playerStatsList)})
         
 
-            playerStatsList = boxScoreTree.xpath(xPathString)
-            playerStatsList = playerStatsConvert(playerStatsList)
-           # print(playerStatsList)
-           # playerMap[playerid].append(gameid)
-           # print(gameStatsList+playerStatsList)
+            #gets player stats for home players and appends that to the game stats
+            for playerid in homePlayeridList:
+                xPathString = "//tr[contains(@class,'player-46-" + playerid + "')]/*/text()"
+
+                gameStatsList = []
         
-            playerMap[playerid][gameid]=(gameStatsList+playerStatsList)
-            #playerMap[playerid] = OrderedDict({gameid:(gameStatsList+playerStatsList)})
-        
+                # stores own team's number and also the opposing team's number
+                # 1 for home team and score difference is calc away score - home score
+                gameStatsList += date_time_convert(game_time_info) + [homeTeamNum, awayTeamNum] + [1, -1 * scoreDifference]
 
-        #gets player stats for home players and appends that to the game stats
-        for playerid in homePlayeridList:
-            xPathString = "//tr[contains(@class,'player-46-" + playerid + "')]/*/text()"
+                playerStatsList = boxScoreTree.xpath(xPathString)
 
-            gameStatsList = []
-        
-            # stores own team's number and also the opposing team's number
-            # 1 for home team and score difference is calc away score - home score
-            gameStatsList += date_time_convert(game_time_info) + [homeTeamNum, awayTeamNum] + [1, -1 * scoreDifference]
+                if("DNP" not in playerStatsList[1] or "DNP COACH'S DECISION" in playerStatsList[1]):
 
-            playerStatsList = boxScoreTree.xpath(xPathString)
-            playerStatsList = playerStatsConvert(playerStatsList)
-           # print(playerStatsList)
-           # playerMap[playerid].append(gameid)
+                
+                    playerStatsList = playerStatsConvert(playerStatsList)
+                   # print(playerStatsList)
+                   # playerMap[playerid].append(gameid)
 
-            playerMap[playerid][gameid]=(gameStatsList+playerStatsList)
-            #playerMap[playerid] = OrderedDict({gameid:(gameStatsList+playerStatsList)})
+                    playerMap[playerid][gameid]=(gameStatsList+playerStatsList)
+                    #playerMap[playerid] = OrderedDict({gameid:(gameStatsList+playerStatsList)})
+        except (IndexError):
+            print("Game " + gameid + " does not exist")
 
     #need to UNION currentMap(defaultdict in file) and playerMap(recent games)
     for playerid,orderedDict in playerMap.items():
@@ -876,39 +888,42 @@ def writePlayerIDDict(dict):
     f.write(json.dumps(dict))
     f.close()
 
-def calc_fanduel_points():
-    return 0
+def calc_fanduel_points(statList):
+    return (statList[1] - statList[3]) * 2 + statList[3] * 3 + statList[5] * 1 + statList[9] * 1.2 + statList[10] * 1.5 + statList[11] * 2 + statList[12] * 2 + statList[13] * -1
 
 def description(dict):
     f = open("final.txt","w")
     for playerid, statList in dict.items():
-        f.write(playerid_to_playerName(int(playerid)) + ": [" + str(statList[0]) + " mins, " + str(statList[1]) + "/" + str(statList[2]) + " fg, " + str(statList[3]) + "/" +  str(statList[4]) + " 3p, "
-                + str(statList[5]) + "/" +  str(statList[6]) + " ft, " + str(statList[7]) + " dreb, " + str(statList[8]) + " oreb, " + str(statList[9]) + " reb, " + str(statList[10]) + " ast, " +
-                str(statList[11]) + " stl, " + str(statList[12]) + " blk, " + str(statList[13]) + " TO, " + str(statList[14]) + " PF, " + str(statList[15]) + " +/-, " + str(statList[16]) + " pts]\n")
+        f.write(playerid_to_playerName(int(playerid)) + ": [" + "{0:.2f}".format(statList[0]) + " mins, " + "{0:.2f}".format(statList[1]) + "/" + 
+                "{0:.2f}".format(statList[2]) + " fg, " + "{0:.2f}".format(statList[3]) + "/" +  "{0:.2f}".format(statList[4]) + " 3p, "
+                + "{0:.2f}".format(statList[5]) + "/" +  "{0:.2f}".format(statList[6]) + " ft, " + "{0:.2f}".format(statList[7]) + " dreb, " + 
+                "{0:.2f}".format(statList[8]) + " oreb, " + "{0:.2f}".format(statList[9]) + " reb, " + "{0:.2f}".format(statList[10]) + " ast, " +
+                "{0:.2f}".format(statList[11]) + " stl, " + "{0:.2f}".format(statList[12]) + " blk, " + "{0:.2f}".format(statList[13]) + " TO, " + 
+                "{0:.2f}".format(statList[14]) + " PF, " + "{0:.2f}".format(statList[15]) + " +/-, " + "{0:.2f}".format(statList[16]) + " pts] FANDUEL: " + "{0:.2f}".format(calc_fanduel_points(statList)) + "\n")
     f.close()
     writePlayerIDDict(playerIDDict)
 
 
-#(lastModifiedDate,currentMap) = readPlayerStatsFile()
-#today_playerMap = create_todays_playerMap()
-##print(today_playerMap)
-#gameids = getNewGameIDs()
-#currentMap = createPlayerMap(gameids,currentMap)
-#writePlayerStats(currentMap)
+(lastModifiedDate,currentMap) = readPlayerStatsFile()
+today_playerMap = create_todays_playerMap()
+#print(today_playerMap)
+gameids = getNewGameIDs()
+currentMap = createPlayerMap(gameids,currentMap)
+writePlayerStats(currentMap)
 
-#(trainingFeatureList,testingFeatureList,todayFeatureList) = generate_features(currentMap,today_playerMap)
-##print(todayFeatureList)
-#writeFeaturesFiles(trainingFeatureList,testingFeatureList,todayFeatureList)
+(trainingFeatureList,testingFeatureList,todayFeatureList) = generate_features(currentMap,today_playerMap)
+#print(todayFeatureList)
+writeFeaturesFiles(trainingFeatureList,testingFeatureList,todayFeatureList)
 
-#(trainingLabelsList,testingLabelsList) = generate_labels(currentMap)
-#writeLabelsCSVFiles(trainingLabelsList,testingLabelsList)
+(trainingLabelsList,testingLabelsList) = generate_labels(currentMap)
+writeLabelsCSVFiles(trainingLabelsList,testingLabelsList)
 
 (trainingFeatures_arr,trainingLabels_arr,todayFeatures_arr,testingFeatures_arr,testingLabels_arr) = readCSVFiles()
 #print(todayFeatures_arr)
 today_playerIDS = extract_playerIDS(todayFeatures_arr)
 #print(today_playerIDS)
 
-#write_preds(trainingFeatures_arr,trainingLabels_arr,testingFeatures_arr,testingLabels_arr,todayFeatures_arr)
+write_preds(trainingFeatures_arr,trainingLabels_arr,testingFeatures_arr,testingLabels_arr,todayFeatures_arr)
 #print(preds)
 
 preds = readPredsFile()
