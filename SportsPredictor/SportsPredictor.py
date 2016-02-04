@@ -394,6 +394,9 @@ def createPlayerMap(gameids,currentMap):
         
                     playerMap[playerid][gameid]=(gameStatsList+playerStatsList)
                     #playerMap[playerid] = OrderedDict({gameid:(gameStatsList+playerStatsList)})
+
+                else:
+                    print(playerid + " is injured, so stats from game will not count")
         
 
             #gets player stats for home players and appends that to the game stats
@@ -879,6 +882,7 @@ def playerid_to_playerName(playerid):
         #print(str(playerid))
         playerPage = requests.get("http://espn.go.com/nba/player/_/id/" + str(playerid))
         playerTree = html.fromstring(playerPage.content)
+        print(playerid)
         [playerName] = playerTree.xpath("//div[@class='mod-content']/*/h1/text() | //div[@class='mod-content']/h1/text()")
         playerIDDict[playerid] = playerName
         return playerName
@@ -891,52 +895,212 @@ def writePlayerIDDict(dict):
 def calc_fanduel_points(statList):
     return (statList[1] - statList[3]) * 2 + statList[3] * 3 + statList[5] * 1 + statList[9] * 1.2 + statList[10] * 1.5 + statList[11] * 2 + statList[12] * 2 + statList[13] * -1
 
-def description(dict):
+def gen_description_and_fanduel_map(dict):
+    playerList = []
+
     f = open("final.txt","w")
+    fanduel_data_arr = fanduel_scrape("FanDuel-NBA-2016-02-03-14597-players-list.csv")
+    
     for playerid, statList in dict.items():
-        f.write(playerid_to_playerName(int(playerid)) + ": [" + "{0:.2f}".format(statList[0]) + " mins, " + "{0:.2f}".format(statList[1]) + "/" + 
-                "{0:.2f}".format(statList[2]) + " fg, " + "{0:.2f}".format(statList[3]) + "/" +  "{0:.2f}".format(statList[4]) + " 3p, "
-                + "{0:.2f}".format(statList[5]) + "/" +  "{0:.2f}".format(statList[6]) + " ft, " + "{0:.2f}".format(statList[7]) + " dreb, " + 
-                "{0:.2f}".format(statList[8]) + " oreb, " + "{0:.2f}".format(statList[9]) + " reb, " + "{0:.2f}".format(statList[10]) + " ast, " +
-                "{0:.2f}".format(statList[11]) + " stl, " + "{0:.2f}".format(statList[12]) + " blk, " + "{0:.2f}".format(statList[13]) + " TO, " + 
-                "{0:.2f}".format(statList[14]) + " PF, " + "{0:.2f}".format(statList[15]) + " +/-, " + "{0:.2f}".format(statList[16]) + " pts] FANDUEL: " + "{0:.2f}".format(calc_fanduel_points(statList)) + "\n")
+        name = playerid_to_playerName(int(playerid))
+        #print(name)
+        
+        if(name in fanduel_data_arr["Name"].as_matrix()):
+            [row] = fanduel_data_arr.loc[fanduel_data_arr['Name'] == name].as_matrix()
+            position = row[1]
+            fanduelAvg = row[4]
+            cost = row[6]
+            injured = row[10]
+
+            predicted = calc_fanduel_points(statList)
+            
+            
+            #print(row)
+            f.write( name + ": [" + "{0:.2f}".format(statList[0]) + " mins, " + "{0:.2f}".format(statList[1]) + "/" + 
+                    "{0:.2f}".format(statList[2]) + " fg, " + "{0:.2f}".format(statList[3]) + "/" +  "{0:.2f}".format(statList[4]) + " 3p, "
+                    + "{0:.2f}".format(statList[5]) + "/" +  "{0:.2f}".format(statList[6]) + " ft, " + "{0:.2f}".format(statList[7]) + " dreb, " + 
+                    "{0:.2f}".format(statList[8]) + " oreb, " + "{0:.2f}".format(statList[9]) + " reb, " + "{0:.2f}".format(statList[10]) + " ast, " +
+                    "{0:.2f}".format(statList[11]) + " stl, " + "{0:.2f}".format(statList[12]) + " blk, " + "{0:.2f}".format(statList[13]) + " TO, " + 
+                    "{0:.2f}".format(statList[14]) + " PF, " + "{0:.2f}".format(statList[15]) + " +/-, " + "{0:.2f}".format(statList[16]) + " pts] FANDUEL: " 
+                    + "{0:.2f}".format(predicted) + ", " + position + ", " + str(cost) + ", " + "{0:.2f}".format(fanduelAvg) + "\n")
+
+            if(injured != "GTD" and injured != "O"):
+                playerList.append([position, predicted, cost,name])
+
     f.close()
     writePlayerIDDict(playerIDDict)
 
+    with open("playerlist.txt","w") as f:
+        f.write(json.dumps(playerList))
 
-(lastModifiedDate,currentMap) = readPlayerStatsFile()
-today_playerMap = create_todays_playerMap()
-#print(today_playerMap)
-gameids = getNewGameIDs()
-currentMap = createPlayerMap(gameids,currentMap)
-writePlayerStats(currentMap)
-
-(trainingFeatureList,testingFeatureList,todayFeatureList) = generate_features(currentMap,today_playerMap)
-#print(todayFeatureList)
-writeFeaturesFiles(trainingFeatureList,testingFeatureList,todayFeatureList)
-
-(trainingLabelsList,testingLabelsList) = generate_labels(currentMap)
-writeLabelsCSVFiles(trainingLabelsList,testingLabelsList)
-
-(trainingFeatures_arr,trainingLabels_arr,todayFeatures_arr,testingFeatures_arr,testingLabels_arr) = readCSVFiles()
-#print(todayFeatures_arr)
-today_playerIDS = extract_playerIDS(todayFeatures_arr)
-#print(today_playerIDS)
-
-write_preds(trainingFeatures_arr,trainingLabels_arr,testingFeatures_arr,testingLabels_arr,todayFeatures_arr)
-#print(preds)
-
-preds = readPredsFile()
-#preds = [item for sublist in preds for item in sublist]
+    return playerList
 
 
+def fanduel_scrape(csvFile):
 
-#print(preds)
+    #TEMPORARY UNTIL I FIGURE OUT HOW TO SCRAPE FANDUEL PROPERLY
 
-dictionary = dict(zip(today_playerIDS, preds))
-#print(dictionary)
+    fanduel_data = pd.read_csv(csvFile)
+    fanduel_data_headers = list(fanduel_data.columns.values)
+    #fanduel_data = fanduel_data._get_numeric_data()
+    fanduel_data["Name"] = (fanduel_data["First Name"] + " " + fanduel_data["Last Name"])
+   # fanduel_data.drop(fanduel_data.columns[[2,3]],axis=1)
+    #fanduel_data.drop("Last Name",axis=1)
+    #fanduel_data_arr = fanduel_data.as_matrix()#[:,:12]
 
-#print(playerid_to_playerName(2959753))
-#print(playerIDDict)
 
-description(dictionary)
+   # print(fanduel_data_arr)
+
+    return fanduel_data
+
+def cutOut(positionList):
+    for i in positionList:
+        for j in positionList:
+            if(i==j):
+                continue
+            #i is projected to score more and costs less
+            if(i[1] > j[1] and i[2] <= j[2]):
+                positionList.remove(j)
+    return positionList
+
+
+def optimize(predsList):
+    totalSalary = 60000
+
+    #position caps are 2 PG, 2 SG, 2 SF, 2 PF, 1 C
+
+    pgs = [item for item in predsList if item[0] == "PG"]
+    sgs = [item for item in predsList if item[0] == "SG"]
+    sfs = [item for item in predsList if item[0] == "SF"]
+    pfs = [item for item in predsList if item[0] == "PF"]
+    cs = [item for item in predsList if item[0] == "C"]
+
+    #print(pgs)
+    #print(len(sgs))
+    #print(len(sfs))
+    #print(len(pfs))
+    #print(len(cs))
+
+    pgs = cutOut(pgs)
+    sgs = cutOut(sgs)
+    sfs = cutOut(sfs)
+    pfs = cutOut(pfs)
+    cs = cutOut(cs)
+
+    #print(pgs)
+    #print(len(sgs))
+    #print(len(sfs))
+    #print(len(pfs))
+    #print(len(cs))
+
+    maxList = []
+    maxPoints = 0
+
+    for pg1 in pgs:
+        for pg2 in pgs:
+            if(pg1 == pg2):
+                continue
+            for sg1 in sgs:
+                for sg2 in sgs:
+                    if(sg1 == sg2):
+                        continue
+                    for sf1 in sfs:
+                        cost = pg1[2] + pg2[2] + sg1[2] + sg2[2] + sf1[2]
+                        if (cost>totalSalary):
+                            continue
+                        for sf2 in sfs:
+                            cost = pg1[2] + pg2[2] + sg1[2] + sg2[2] + sf1[2] + sf2[2]
+                            if (cost>totalSalary):
+                                continue
+                            if(sf1 == sf2):
+                                continue
+                            for pf1 in pfs:
+                                cost = pg1[2] + pg2[2] + sg1[2] + sg2[2] + sf1[2] + sf2[2] + pf1[2]
+                                if (cost>totalSalary):
+                                    continue
+                                for pf2 in pfs:
+                                    cost = pg1[2] + pg2[2] + sg1[2] + sg2[2] + sf1[2] + sf2[2] + pf1[2] + pf2[2]
+                                    if (cost>totalSalary):
+                                        continue
+                                    if(pf1 == pf2):
+                                        continue
+                                    for c in cs:
+                                        cost = pg1[2] + pg2[2] + sg1[2] + sg2[2] + sf1[2] + sf2[2] + pf1[2] + pf2[2] + c[2]
+                                        if (cost>totalSalary):
+                                            continue
+                                        sum = pg1[1] + pg2[1] + sg1[1] + sg2[1] + sf1[1] + sf2[1] + pf1[1] + pf2[1] + c[1]
+                                        if(sum > maxPoints):
+                                            maxPoints = sum
+                                            maxList = [pg1[3],pg2[3],sg1[3],sg2[3],sf1[3],sf2[3],pf1[3],pf2[3],c[3], cost,sum]
+    return maxList
+
+
+    #payload = { "email" : "amcire96@gmail.com",
+    #           "password" : "kathy_ma",
+    #           "cc_session_id" : "sa2s9a83e7f9mq3jtldma09bu1" ,
+    #           "cc_action" : "cca_login",
+    #           "cc_success_url" : "/games"}
+
+    #with requests.Session() as s:
+    #    p = s.post("https://www.fanduel.com/c/CCAuth", data = payload)
+    #    print(p.text)
+
+    #r = requests.get("https://www.fanduel.com/games",auth=("amcire96@gmail.com","kathy_ma"))
+    #print(r.text)
+
+
+    #homePage = requests.get("https://www.fanduel.com/games")
+    #homeTree = html.fromstring(homePage.content)
+    ##firstContestID = homeTree.xpath("//table[@class='contest-list']/tbody/tr[position()=1]/td[@class='enter-contest-cell']/a/@href")
+    #firstContestID = homeTree.xpath("//*")
+    #print(firstContestID)
+
+    #[a,_] = contestID.split("-")
+    #url = "https://www.fanduel.com/games/" + a + "/contests/" + contestID + "/enter"
+
+    #contestPage = requests.get(url)
+    #contestTree = html.fromstring(contestPage.content)
+    #playerlist = contestTree.xpath("//table/*")
+    ##print(playerlist)
+
+    #print(contestTree)
+
+
+
+#(lastModifiedDate,currentMap) = readPlayerStatsFile()
+#today_playerMap = create_todays_playerMap()
+
+#gameids = getNewGameIDs()
+#currentMap = createPlayerMap(gameids,currentMap)
+#writePlayerStats(currentMap)
+
+#(trainingFeatureList,testingFeatureList,todayFeatureList) = generate_features(currentMap,today_playerMap)
+
+#writeFeaturesFiles(trainingFeatureList,testingFeatureList,todayFeatureList)
+
+#(trainingLabelsList,testingLabelsList) = generate_labels(currentMap)
+#writeLabelsCSVFiles(trainingLabelsList,testingLabelsList)
+
+#(trainingFeatures_arr,trainingLabels_arr,todayFeatures_arr,testingFeatures_arr,testingLabels_arr) = readCSVFiles()
+
+#today_playerIDS = extract_playerIDS(todayFeatures_arr)
+
+
+##write_preds(trainingFeatures_arr,trainingLabels_arr,testingFeatures_arr,testingLabels_arr,todayFeatures_arr)
+
+
+#preds = readPredsFile()
+
+
+
+#dictionary = dict(zip(today_playerIDS, preds))
+
+#optimize(gen_description_and_fanduel_map(dictionary))
+
+playerList = []
+with open("playerlist.txt","r") as f:
+    playerList = json.loads(f.readline())
+
+print(optimize(playerList))
+
+#fanduel_scrape("FanDuel-NBA-2016-02-03-14597-players-list.csv")
