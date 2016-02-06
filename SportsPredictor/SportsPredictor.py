@@ -719,7 +719,7 @@ def readCSVFiles():
 
 
 
-def write_preds(trainingFeatures_arr,trainingLabels_arr,testingFeatures_arr,testingLabels_arr,todayFeatures_arr):
+def create_preds(trainingFeatures_arr,trainingLabels_arr,testingFeatures_arr,testingLabels_arr,todayFeatures_arr):
 
     #svr = svm.SVR()
 
@@ -815,13 +815,15 @@ def write_preds(trainingFeatures_arr,trainingLabels_arr,testingFeatures_arr,test
     #print(regr.predict(todayFeatures_arr))
 
     preds = regr.predict(todayFeatures_arr)
-    today = datetime.date.today()
-    todayStr = str(today.month) + "/" + str(today.day) + "/" + str(today.year)
+
+    return preds
+
+
+def write_preds(preds):
     with open("PredictedToday.csv","w",newline='') as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(["mins","fgm","fga","3pm","3pa","ftm","fta","dreb","oreb","reb",
                          "ast","stl","blk","to","pf","+/-","pts"])
-        #writer.writerow(["Last Updated: " + todayStr, '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''])
         writer.writerows(preds)
 
 
@@ -882,8 +884,14 @@ def playerid_to_playerName(playerid):
         #print(str(playerid))
         playerPage = requests.get("http://espn.go.com/nba/player/_/id/" + str(playerid))
         playerTree = html.fromstring(playerPage.content)
-        print(playerid)
-        [playerName] = playerTree.xpath("//div[@class='mod-content']/*/h1/text() | //div[@class='mod-content']/h1/text()")
+        #print(playerid)
+        
+        try:
+            [playerName] = playerTree.xpath("//div[@class='mod-content']/*/h1/text() | //div[@class='mod-content']/h1/text()")
+        except (IndexError):
+            print("Player " + playerid + " causes error")
+
+
         playerIDDict[playerid] = playerName
         return playerName
         
@@ -895,11 +903,11 @@ def writePlayerIDDict(dict):
 def calc_fanduel_points(statList):
     return (statList[1] - statList[3]) * 2 + statList[3] * 3 + statList[5] * 1 + statList[9] * 1.2 + statList[10] * 1.5 + statList[11] * 2 + statList[12] * 2 + statList[13] * -1
 
-def gen_description_and_fanduel_map(dict):
+def gen_description_and_fanduel_map(dict,csvFileName):
     playerList = []
 
     f = open("final.txt","w")
-    fanduel_data_arr = fanduel_scrape("FanDuel-NBA-2016-02-03-14597-players-list.csv")
+    fanduel_data_arr = fanduel_scrape(csvFileName)
     
     for playerid, statList in dict.items():
         name = playerid_to_playerName(int(playerid))
@@ -930,10 +938,14 @@ def gen_description_and_fanduel_map(dict):
     f.close()
     writePlayerIDDict(playerIDDict)
 
-    with open("playerlist.txt","w") as f:
-        f.write(json.dumps(playerList))
+
 
     return playerList
+
+
+def write_playerList(playerList):
+    with open("playerlist.txt","w") as f:
+        f.write(json.dumps(playerList))
 
 
 def fanduel_scrape(csvFile):
@@ -948,7 +960,7 @@ def fanduel_scrape(csvFile):
     #fanduel_data.drop("Last Name",axis=1)
     #fanduel_data_arr = fanduel_data.as_matrix()#[:,:12]
 
-
+    
    # print(fanduel_data_arr)
 
     return fanduel_data
@@ -963,9 +975,41 @@ def cutOut(positionList):
                 positionList.remove(j)
     return positionList
 
+def pairSame(positionList):
+    pairedList = [[(a[0],b[0]),a[1]+b[1],a[2]+b[2],(a[3],b[3])] for a in positionList for b in positionList if a != b]
+    for i in pairedList:
+        for j in pairedList:
+            if(i==j):
+                continue
+            #i is projected to score more and costs less
+            #goal of this is to remove the dominated players
+            if(i[1] > j[1] and i[2] <= j[2]):
+                pairedList.remove(j)
+         
+    return pairedList
 
-def optimize(predsList):
-    totalSalary = 60000
+def pairDifferentFilter(positionList1,positionList2,totalSalary):
+    pairedList = [[a[0]+b[0],a[1]+b[1],a[2]+b[2],a[3]+b[3]] for a in positionList1 for b in positionList2 if a[2] + b[2] <= totalSalary]
+    #print("done matching")
+    for i in pairedList:
+        for j in pairedList:
+            if(i==j):
+                continue
+            #i is projected to score more and costs less
+            if(i[1] > j[1] and i[2] <= j[2]):
+                pairedList.remove(j)
+         
+    return pairedList
+
+def combineDifferentNoFilter(positionList1,positionList2,positionList3,totalSalary):
+    pairedList = [[a[0]+b[0]+c[0],a[1]+b[1]+c[1],a[2]+b[2]+c[2],a[3]+b[3]+c[3]] for a in positionList1 for b in positionList2 for c in positionList3 if a[2] + b[2] + c[2] <= totalSalary]
+    #print("done matching")
+    return pairedList
+
+def formatCenters(centers):
+    return [[(item[0],),item[1],item[2],(item[3],)] for item in centers]
+
+def optimize(predsList,totalSalary):
 
     #position caps are 2 PG, 2 SG, 2 SF, 2 PF, 1 C
 
@@ -975,11 +1019,7 @@ def optimize(predsList):
     pfs = [item for item in predsList if item[0] == "PF"]
     cs = [item for item in predsList if item[0] == "C"]
 
-    #print(pgs)
-    #print(len(sgs))
-    #print(len(sfs))
-    #print(len(pfs))
-    #print(len(cs))
+
 
     pgs = cutOut(pgs)
     sgs = cutOut(sgs)
@@ -987,52 +1027,99 @@ def optimize(predsList):
     pfs = cutOut(pfs)
     cs = cutOut(cs)
 
-    #print(pgs)
-    #print(len(sgs))
-    #print(len(sfs))
-    #print(len(pfs))
+
+
+
+
+
     #print(len(cs))
 
-    maxList = []
-    maxPoints = 0
+    pgs = pairSame(pgs)
+    sgs = pairSame(sgs)
+    sfs = pairSame(sfs)
+    pfs = pairSame(pfs)
+    cs = formatCenters(cs)
 
-    for pg1 in pgs:
-        for pg2 in pgs:
-            if(pg1 == pg2):
-                continue
-            for sg1 in sgs:
-                for sg2 in sgs:
-                    if(sg1 == sg2):
-                        continue
-                    for sf1 in sfs:
-                        cost = pg1[2] + pg2[2] + sg1[2] + sg2[2] + sf1[2]
-                        if (cost>totalSalary):
-                            continue
-                        for sf2 in sfs:
-                            cost = pg1[2] + pg2[2] + sg1[2] + sg2[2] + sf1[2] + sf2[2]
-                            if (cost>totalSalary):
-                                continue
-                            if(sf1 == sf2):
-                                continue
-                            for pf1 in pfs:
-                                cost = pg1[2] + pg2[2] + sg1[2] + sg2[2] + sf1[2] + sf2[2] + pf1[2]
-                                if (cost>totalSalary):
-                                    continue
-                                for pf2 in pfs:
-                                    cost = pg1[2] + pg2[2] + sg1[2] + sg2[2] + sf1[2] + sf2[2] + pf1[2] + pf2[2]
-                                    if (cost>totalSalary):
-                                        continue
-                                    if(pf1 == pf2):
-                                        continue
-                                    for c in cs:
-                                        cost = pg1[2] + pg2[2] + sg1[2] + sg2[2] + sf1[2] + sf2[2] + pf1[2] + pf2[2] + c[2]
-                                        if (cost>totalSalary):
-                                            continue
-                                        sum = pg1[1] + pg2[1] + sg1[1] + sg2[1] + sf1[1] + sf2[1] + pf1[1] + pf2[1] + c[1]
-                                        if(sum > maxPoints):
-                                            maxPoints = sum
-                                            maxList = [pg1[3],pg2[3],sg1[3],sg2[3],sf1[3],sf2[3],pf1[3],pf2[3],c[3], cost,sum]
-    return maxList
+
+    guards = pairDifferentFilter(pgs,sgs,totalSalary)
+    print("Paired Guards")
+
+
+    forwards = pairDifferentFilter(sfs,pfs,totalSalary)
+    print("Paired Forwards")
+   
+
+    all_players = combineDifferentNoFilter(guards,forwards,cs,totalSalary)
+    print("Generated All Reasonable Combinations. Going to find best one now.")
+
+    optimal = max(all_players, key=lambda x: x[1])
+
+    #print(optimal)
+
+
+    return optimal
+
+
+
+
+
+
+
+    #brute force WAY too slow
+    #maxList = []
+    #maxPoints = 0
+
+    #for pg1 in pgs:
+    #    #cost1 = pg1[2]
+    #    #sum1 = pg1[1]
+    #    for pg2 in pgs:
+    #        if(pg1 == pg2):
+    #            continue
+    #        #cost2 = cost1 + pg2[2]
+    #        #sum2 = sum1 + pg2[1]
+    #        for sg1 in sgs:
+    #            #cost3 = cost2 + sg1[2]
+    #            #sum3 = sum2 + sg1[1]
+    #            for sg2 in sgs:
+    #                if(sg1 == sg2):
+    #                    continue
+    #                #cost4 = cost3 + sg2[2]
+    #                #sum4 = cost3 + sg2[1]
+    #                for sf1 in sfs:
+    #                    #cost5 = cost4 + sf1[2]
+    #                    #sum5 = sum4 + sf1[1]
+    #                    #if (cost5>totalSalary):
+    #                    #    continue
+    #                    for sf2 in sfs:
+    #                        #cost6 = cost5 + sf2[2]
+    #                        #sum6 = sum5 + sf2[1]
+    #                        #if (sf1 == sf2 or cost6>totalSalary):
+    #                        #    continue
+    #                        if(sf1 == sf2):
+    #                            continue
+    #                        for pf1 in pfs:
+    #                            #cost7 = cost6 + pf1[2]
+    #                            #sum7 = sum6 + pf1[1]
+    #                            #if (cost7>totalSalary):
+    #                            #    continue
+    #                            for pf2 in pfs:
+    #                                #cost8 = cost7 + pf2[2]
+    #                                #sum8 = sum7 + pf2[1]
+    #                                #if (cost8>totalSalary or pf1 == pf2):
+    #                                #    continue
+    #                                if(pf1 == pf2):
+    #                                    continue
+    #                                for c in cs:
+    #                                    cost = pg1[2]+pg2[2]+sg1[2]+sg2[2]+sf1[2]+sf2[2]+pf1[2]+pf2[2]+c[2]
+    #                                    if (cost>totalSalary):
+    #                                        continue
+    #                                    sum = pg1[1]+pg2[1]+sg1[1]+sg2[1]+sf1[1]+sf2[1]+pf1[1]+pf2[1]+c[1]
+    #                                    if(sum > maxPoints):
+    #                                        print("Current Max Points is %f" %sum)
+    #                                        maxPoints = sum
+    #                                        maxList = [pg1[1],pg2[1],sg1[1],sg2[1],sf1[1],sf2[1],pf1[1],pf2[1],c[1], cost,sum]
+    #                                        #print(maxList)
+    #return maxList
 
 
     #payload = { "email" : "amcire96@gmail.com",
@@ -1067,40 +1154,109 @@ def optimize(predsList):
 
 
 
-#(lastModifiedDate,currentMap) = readPlayerStatsFile()
-#today_playerMap = create_todays_playerMap()
-
-#gameids = getNewGameIDs()
-#currentMap = createPlayerMap(gameids,currentMap)
-#writePlayerStats(currentMap)
-
-#(trainingFeatureList,testingFeatureList,todayFeatureList) = generate_features(currentMap,today_playerMap)
-
-#writeFeaturesFiles(trainingFeatureList,testingFeatureList,todayFeatureList)
-
-#(trainingLabelsList,testingLabelsList) = generate_labels(currentMap)
-#writeLabelsCSVFiles(trainingLabelsList,testingLabelsList)
-
-#(trainingFeatures_arr,trainingLabels_arr,todayFeatures_arr,testingFeatures_arr,testingLabels_arr) = readCSVFiles()
-
-#today_playerIDS = extract_playerIDS(todayFeatures_arr)
 
 
-##write_preds(trainingFeatures_arr,trainingLabels_arr,testingFeatures_arr,testingLabels_arr,todayFeatures_arr)
-
-
-#preds = readPredsFile()
+def readPlayerList():
+    playerList = []
+    with open("playerlist.txt","r") as f:
+        playerList = json.loads(f.readline())
+    return playerList
 
 
 
-#dictionary = dict(zip(today_playerIDS, preds))
 
-#optimize(gen_description_and_fanduel_map(dictionary))
 
-playerList = []
-with open("playerlist.txt","r") as f:
-    playerList = json.loads(f.readline())
 
-print(optimize(playerList))
 
+
+
+
+#def getPlayerList(contestID):
+#    [a,_] = contestID.split("-")
+#    url = "https://www.fanduel.com/games/" + a + "/contests/" + contestID + "/enter"
+
+#    contestPage = requests.get(url)
+#    contestTree = html.fromstring(contestPage.content)
+#    playerlist = contestTree.xpath("//body/*")
+#    print(playerlist)
+
+    #print(contestTree)
+
+
+
+
+
+
+
+(lastModifiedDate,currentMap) = readPlayerStatsFile()
+isUpdated = (lastModifiedDate == datetime.date.today())
+
+print("Getting data about players playing today")
+today_playerMap = create_todays_playerMap()
+
+if(not isUpdated):
+    gameids = getNewGameIDs()
+    currentMap = createPlayerMap(gameids,currentMap)
+    writePlayerStats(currentMap)
+    print("Done creating and writing Player Map")
+else:
+    print("PlayerMap is already updated, so not creating new PlayerMap")
+
+
+if(not isUpdated):
+    (trainingFeatureList,testingFeatureList,todayFeatureList) = generate_features(currentMap,today_playerMap)
+    writeFeaturesFiles(trainingFeatureList,testingFeatureList,todayFeatureList)
+
+    (trainingLabelsList,testingLabelsList) = generate_labels(currentMap)
+    writeLabelsCSVFiles(trainingLabelsList,testingLabelsList)
+
+    print("Done generating features and labels")
+else:
+    (trainingFeatures_arr,trainingLabels_arr,todayFeatures_arr,testingFeatures_arr,testingLabels_arr) = readCSVFiles()
+    print("Features and Labels are already updated -- just reading those files now, so not creating new ones")
+
+
+
+today_playerIDS = extract_playerIDS(todayFeatures_arr)
+
+if(not isUpdated):
+    preds = create_preds(trainingFeatures_arr,trainingLabels_arr,testingFeatures_arr,testingLabels_arr,todayFeatures_arr)
+    write_preds(preds)
+    print("Done making predictions about players playing today")
+else:
+    preds = readPredsFile()
+    print("Predictions are already updated -- just reading predictions file now, so not creating new ones")
+
+
+
+#WAS GOING TO SKIP IF ALREADY UPDATED BUT BEST TO GIVE USER THE OPTION OF SPECIFYING ANOTHER TOURNAMENT TODAY
+#don't need to write/read file then
+dictionary = dict(zip(today_playerIDS, preds))
+
+print("------------------------------------------------------------------------------------------------------------------")
+print("INSTRUCTIONS: Go to Fanduel's website, sign in, go to an NBA contest page and download the players' stats CSV file")
+
+csvFileName = str(input("What is the absolute or relative path of this CSV file?"))
+totalSalary = int(input("What is the total salary of this contest?"))
+print("------------------------------------------------------------------------------------------------------------------")
+
+playerList = gen_description_and_fanduel_map(dictionary,csvFileName)
+
+#write_playerList(playerList)
+print("Done using Fanduel Data and now optimizing to find best predicted line-up")
+
+#playerList = readPlayerList()
+    
+
+
+print(optimize(playerList,totalSalary))
+
+
+
+
+
+
+#IDK IF I AM GOING TO KEEP WORKING ON SCRAPING FANDUEL
+#IT SEEMS DIFFICULT / AGAINST THE TERMS OF SERVICE
+#getPlayerList("14619-22471320")
 #fanduel_scrape("FanDuel-NBA-2016-02-03-14597-players-list.csv")
