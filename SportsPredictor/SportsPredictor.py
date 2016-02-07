@@ -200,8 +200,22 @@ def create_todays_playerMap():
     schedulePage = requests.get("http://espn.go.com/nba/schedule")
     scheduleTree = html.fromstring(schedulePage.content)
     [date] = scheduleTree.xpath("//div[@class='basketball']/div[@id='sched-container']/div[position()=2]/table/caption/text()")
+    date = strToDate(date)
 
-    todaysGameIDs = [x.split("=")[1] for x in scheduleTree.xpath("//div[@class='basketball']/div[@id='sched-container']/div[position()=2]/table/tbody/tr/td[position()=3]/a/@href")]
+    if(date != datetime.date.today()):
+        print("ESPN's schedule page has not updated for today's games")
+        #exit()
+        [date] = scheduleTree.xpath("//div[@class='basketball']/div[@id='sched-container']/div[position()=3]/table/caption/text()")
+        date = strToDate(date)
+        
+        todaysGameIDs = [x.split("=")[1] for x in scheduleTree.xpath("//div[@class='basketball']/div[@id='sched-container']/div[position()=3]/table/tbody/tr/td[position()=3]/a/@href")]
+        if(date != datetime.date.today()):
+            print("Actually Exiting")
+            exit()
+    else:
+        todaysGameIDs = [x.split("=")[1] for x in scheduleTree.xpath("//div[@class='basketball']/div[@id='sched-container']/div[position()=2]/table/tbody/tr/td[position()=3]/a/@href")]
+
+    
     #print(todaysGameIDs)
 
     for gameid in todaysGameIDs:
@@ -966,48 +980,50 @@ def fanduel_scrape(csvFile):
     return fanduel_data
 
 def cutOut(positionList):
-    for i in positionList:
-        for j in positionList:
+    for i in positionList[::-1]:
+        for j in positionList[::-1]:
             if(i==j):
                 continue
             #i is projected to score more and costs less
+            #print(str(i) + ", " + str(j))
             if(i[1] > j[1] and i[2] <= j[2]):
+                #print(str(i[3]) + " dominates " + str(j[3]) + "(payoff " + str(i[1]) + " > " + str(j[1]) + " and cost " + str(i[2]) + " <= " + str(j[2]))
                 positionList.remove(j)
-    return positionList
+    return positionList #[a for a in positionList for b in positionList if a != b and not (a[1]>b[1] and a[2]<=b[2])]
 
 def pairSame(positionList):
-    pairedList = [[(a[0],b[0]),a[1]+b[1],a[2]+b[2],(a[3],b[3])] for a in positionList for b in positionList if a != b]
-    for i in pairedList:
-        for j in pairedList:
+    pairedList = [[(a[0],b[0]),(a[1],b[1]),(a[2],b[2]),(a[3],b[3]),a[1]+b[1],a[2]+b[2]] for a in positionList for b in positionList if a != b]
+    for i in pairedList[::-1]:
+        for j in pairedList[::-1]:
             if(i==j):
                 continue
             #i is projected to score more and costs less
             #goal of this is to remove the dominated players
-            if(i[1] > j[1] and i[2] <= j[2]):
+            if(i[4] > j[4] and i[5] <= j[5]):
                 pairedList.remove(j)
          
-    return pairedList
+    return pairedList #[a for a in pairedList for b in pairedList if a != b and not (a[4]>b[4] and a[5]<=b[5])]
 
 def pairDifferentFilter(positionList1,positionList2,totalSalary):
-    pairedList = [[a[0]+b[0],a[1]+b[1],a[2]+b[2],a[3]+b[3]] for a in positionList1 for b in positionList2 if a[2] + b[2] <= totalSalary]
+    pairedList = [[a[0]+b[0],a[1]+b[1],a[2]+b[2],a[3]+b[3],a[4]+b[4],a[5]+b[5]] for a in positionList1 for b in positionList2 if a[5] + b[5] <= totalSalary]
     #print("done matching")
-    for i in pairedList:
-        for j in pairedList:
+    for i in pairedList[::-1]:
+        for j in pairedList[::-1]:
             if(i==j):
                 continue
             #i is projected to score more and costs less
-            if(i[1] > j[1] and i[2] <= j[2]):
+            if(i[4] > j[4] and i[5] <= j[5]):
                 pairedList.remove(j)
          
-    return pairedList
+    return pairedList #[a for a in pairedList for b in pairedList if a != b and not (a[4]>b[4] and a[5]<=b[5])]
 
 def combineDifferentNoFilter(positionList1,positionList2,positionList3,totalSalary):
-    pairedList = [[a[0]+b[0]+c[0],a[1]+b[1]+c[1],a[2]+b[2]+c[2],a[3]+b[3]+c[3]] for a in positionList1 for b in positionList2 for c in positionList3 if a[2] + b[2] + c[2] <= totalSalary]
+    pairedList = [[a[0]+b[0]+c[0],a[1]+b[1]+c[1],a[2]+b[2]+c[2],a[3]+b[3]+c[3],a[4]+b[4]+c[4],a[5]+b[5]+c[5]] for a in positionList1 for b in positionList2 for c in positionList3 if a[5] + b[5] + c[5] <= totalSalary]
     #print("done matching")
     return pairedList
 
 def formatCenters(centers):
-    return [[(item[0],),item[1],item[2],(item[3],)] for item in centers]
+    return [[(item[0],),(item[1],),(item[2],),(item[3],),item[1],item[2]] for item in centers]
 
 def optimize(predsList,totalSalary):
 
@@ -1052,7 +1068,7 @@ def optimize(predsList,totalSalary):
     all_players = combineDifferentNoFilter(guards,forwards,cs,totalSalary)
     print("Generated All Reasonable Combinations. Going to find best one now.")
 
-    optimal = max(all_players, key=lambda x: x[1])
+    optimal = max(all_players, key=lambda x: x[4])
 
     #print(optimal)
 
@@ -1184,6 +1200,19 @@ def readPlayerList():
 
 
 
+def format_print(resultList):
+    print(resultList[0][0] + "1: " + resultList[3][0] + " with projected " + "{0:.2f}".format(resultList[1][0]) + " points and " + str(resultList[2][0]) + " cost.")
+    print(resultList[0][1] + "2: " + resultList[3][1] + " with projected " + "{0:.2f}".format(resultList[1][1]) + " points and " + str(resultList[2][1]) + " cost.")
+    print(resultList[0][2] + "1: " + resultList[3][2] + " with projected " + "{0:.2f}".format(resultList[1][2]) + " points and " + str(resultList[2][2]) + " cost.")
+    print(resultList[0][3] + "2: " + resultList[3][3] + " with projected " + "{0:.2f}".format(resultList[1][3]) + " points and " + str(resultList[2][3]) + " cost.")
+    print(resultList[0][4] + "1: " + resultList[3][4] + " with projected " + "{0:.2f}".format(resultList[1][4]) + " points and " + str(resultList[2][4]) + " cost.")
+    print(resultList[0][5] + "2: " + resultList[3][5] + " with projected " + "{0:.2f}".format(resultList[1][5]) + " points and " + str(resultList[2][5]) + " cost.")
+    print(resultList[0][6] + "1: " + resultList[3][6] + " with projected " + "{0:.2f}".format(resultList[1][6]) + " points and " + str(resultList[2][6]) + " cost.")
+    print(resultList[0][7] + "2: " + resultList[3][7] + " with projected " + "{0:.2f}".format(resultList[1][7]) + " points and " + str(resultList[2][7]) + " cost.")
+    print(resultList[0][8] + ": " + resultList[3][8] + " with projected " + "{0:.2f}".format(resultList[1][8]) + " points and " + str(resultList[2][8]) + " cost.")
+    print("Total projected points is " + "{0:.2f}".format(resultList[4]))
+    print("Total cost is " + str(resultList[5]))
+
 
 
 
@@ -1204,11 +1233,11 @@ else:
 
 
 if(not isUpdated):
-    (trainingFeatureList,testingFeatureList,todayFeatureList) = generate_features(currentMap,today_playerMap)
-    writeFeaturesFiles(trainingFeatureList,testingFeatureList,todayFeatureList)
+    (trainingFeatures_arr,testingFeatures_arr,todayFeatures_arr) = generate_features(currentMap,today_playerMap)
+    writeFeaturesFiles(trainingFeatures_arr,testingFeatures_arr,todayFeatures_arr)
 
-    (trainingLabelsList,testingLabelsList) = generate_labels(currentMap)
-    writeLabelsCSVFiles(trainingLabelsList,testingLabelsList)
+    (trainingLabels_arr,testingLabels_arr) = generate_labels(currentMap)
+    writeLabelsCSVFiles(trainingLabels_arr,testingLabels_arr)
 
     print("Done generating features and labels")
 else:
@@ -1236,9 +1265,11 @@ dictionary = dict(zip(today_playerIDS, preds))
 print("------------------------------------------------------------------------------------------------------------------")
 print("INSTRUCTIONS: Go to Fanduel's website, sign in, go to an NBA contest page and download the players' stats CSV file")
 
-csvFileName = str(input("What is the absolute or relative path of this CSV file?"))
-totalSalary = int(input("What is the total salary of this contest?"))
+csvFileName = str(input("What is the absolute or relative path of this CSV file?\n"))
+totalSalary = int(input("What is the total salary of this contest?\n"))
 print("------------------------------------------------------------------------------------------------------------------")
+
+print("Combining Fanduel Data with Predicted Data")
 
 playerList = gen_description_and_fanduel_map(dictionary,csvFileName)
 
@@ -1248,8 +1279,9 @@ print("Done using Fanduel Data and now optimizing to find best predicted line-up
 #playerList = readPlayerList()
     
 
+result = optimize(playerList,totalSalary)
 
-print(optimize(playerList,totalSalary))
+format_print(result)
 
 
 
