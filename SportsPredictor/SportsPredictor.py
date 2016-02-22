@@ -32,12 +32,19 @@ playerIDDict = json.loads(f.readline())
 f.close()
 
 #converts position to number
-position_number_dict = { ", PG" : 1,
+position_number_dict = { 
+        ", PG" : 1,
+        "PG" : 1,
         ", SG" : 2,
+        "SG" : 2,
         ", SF" : 3,
+        "SF" : 3,
         ", PF" : 4,
+        "PF" : 4,
         ", C" : 5,
+        "C" : 5,
         ", F" : 3.5,
+        "F" : 3.5
     }
 
 #converts team name to number
@@ -147,11 +154,32 @@ def strToDate(dateStr):
 def date_time_convert(str):
     [a,b] = str.split(":")
     time = int(a) + float(b[0:2])/60
+
+    if(str.split("ET")[1] == ''):
+        today = datetime.date.today()
+        return [today.month, today.day, today.year, time]
     
     [_,dateStr] = str.split("ET, ")
     [monthDayStr,yearStr] = dateStr.split(", ")
     [monthStr,dayStr] = monthDayStr.split(" ")
     return [monthdict[monthStr], int(dayStr), int(yearStr), time]
+
+#takes weird espn date data and returns info in int categories
+#espn has this date data organized pretty terribly
+def data_date_convert(str):
+    [date,time] = str.split("T")
+    [year,month,day] = date.split("-")
+    year = int(year)
+    month = int(month)
+    day = int(day)
+    hour = (int(time[0:2]) + 7)
+    if(hour > 24):
+        hour = hour % 24
+    else:
+        day = day -1
+    min = int(time[3:5])
+    time = hour + float(min)/60
+    return [int(month),int(day),int(year),time]
 
 
     
@@ -199,8 +227,10 @@ def create_todays_playerMap():
 
     schedulePage = requests.get("http://espn.go.com/nba/schedule")
     scheduleTree = html.fromstring(schedulePage.content)
+    #print(scheduleTree.xpath("//div[@class='basketball']/div[@id='sched-container']/div[position()=2]/table/caption"))
     [date] = scheduleTree.xpath("//div[@class='basketball']/div[@id='sched-container']/div[position()=2]/table/caption/text()")
     date = strToDate(date)
+    #print(date)
 
     if(date != datetime.date.today()):
         print("ESPN's schedule page has not updated for today's games")
@@ -209,37 +239,49 @@ def create_todays_playerMap():
         date = strToDate(date)
         
         todaysGameIDs = [x.split("=")[1] for x in scheduleTree.xpath("//div[@class='basketball']/div[@id='sched-container']/div[position()=3]/table/tbody/tr/td[position()=3]/a/@href")]
+       # todayGameTimes = [x+" ET" for x in scheduleTree.xpath("//div[@class='basketball']/div[@id='sched-container']/div[position()=3]/table/tbody/tr/td[position()=3]/a//text()")]
         if(date != datetime.date.today()):
             print("Actually Exiting")
             exit()
     else:
         todaysGameIDs = [x.split("=")[1] for x in scheduleTree.xpath("//div[@class='basketball']/div[@id='sched-container']/div[position()=2]/table/tbody/tr/td[position()=3]/a/@href")]
 
-    
-    #print(todaysGameIDs)
+
+    #FIX!!!
 
     for gameid in todaysGameIDs:
-
-        gameBoxScoreURL = "http://espn.go.com/nba/boxscore?gameId=" + gameid
+        #print("gameid %d" % int(gameid))
+        gameBoxScoreURL = "http://espn.go.com/nba/conversation?gameId=" + gameid
+        #print(gameBoxScoreURL)
         boxScorePage = requests.get(gameBoxScoreURL)
         boxScoreTree = html.fromstring(boxScorePage.content)
 
 
         #first get game data not specific to each player (time,date,score,team numbers etc)
         gameDataList = []
-        game_time_info = boxScoreTree.xpath("//div[@class='game-time-location']/p/text()")[0]
+        #print(boxScoreTree.xpath("//span/text()"))
+        game_time_info = boxScoreTree.xpath("//div[@class='game-status']/span[position()=2]/@data-date")[0]
         #print(game_time_info)
-        [m,d,y,t] = date_time_convert(game_time_info)
+        [m,d,y,t] = data_date_convert(game_time_info)
 
     
-        [awayTeamName] = boxScoreTree.xpath("//div[@class='gamehq-wrapper']/div[@class='summary-tabs-container']/div[@class='span-4']/div[position() = 2]/div[position()=1]/div[@class='team-info']/h3/a/text()")
-        [homeTeamName] = boxScoreTree.xpath("//div[@class='gamehq-wrapper']/div[@class='summary-tabs-container']/div[@class='span-4']/div[position() = 2]/div[position()=2]/div[@class='team-info']/h3/a/text()")
+        #[awayTeamName] = boxScoreTree.xpath("//div[@class='gamehq-wrapper']/div[@class='summary-tabs-container']/div[@class='span-4']/div[position() = 2]/div[position()=1]/div[@class='team-info']/h3/a/text()")
+        #[homeTeamName] = boxScoreTree.xpath("//div[@class='gamehq-wrapper']/div[@class='summary-tabs-container']/div[@class='span-4']/div[position() = 2]/div[position()=2]/div[@class='team-info']/h3/a/text()")
 
-        [awayTeamURL] = boxScoreTree.xpath("//div[@class='gamehq-wrapper']/div[@class='summary-tabs-container']/div[@class='span-4']/div[position() = 2]/div[position()=1]/div[@class='team-info']/h3/a/@href")
+        #print(boxScoreTree.xpath("//div[@class='competitors']/*"))
+
+        [awayTeamName] = boxScoreTree.xpath("//div[@class='competitors']/div[@class='team away']/div[@class='content']/div[@class='team-container']/div[@class='team-info']/a/span[@class='short-name']/text()")
+        [homeTeamName] = boxScoreTree.xpath("//div[@class='competitors']/div[@class='team home']/div[@class='content']/div[@class='team-container']/div[@class='team-info']/a/span[@class='short-name']/text()")
+
+        #print(awayTeamName)
+        #print(homeTeamName)
+
+
+        [awayTeamURL] = boxScoreTree.xpath("//div[@class='competitors']/div[@class='team away']/div[@class='content']/div[@class='team-container']/div[@class='team-info']/a/@href")
         #print(awayTeamName)
         [a,b]=awayTeamURL.split("_")
         awayRosterURL = a + "roster/_" + b
-        awayRosterPage = requests.get(awayRosterURL)
+        awayRosterPage = requests.get("http://espn.go.com" + awayRosterURL)
         awayRosterTree = html.fromstring(awayRosterPage.content)
         awayPlayeridList = [x.split("player-46-")[1] for x in awayRosterTree.xpath("//tr[contains(@class,'player-46')]/@class")]
         #print(awayRosterURL)
@@ -248,12 +290,12 @@ def create_todays_playerMap():
             today_playerMap[playerid][gameid] = [m,d,y,t,team_dict[awayTeamName],team_dict[homeTeamName],0]
 
     
-        [homeTeamURL] = boxScoreTree.xpath("//div[@class='gamehq-wrapper']/div[@class='summary-tabs-container']/div[@class='span-4']/div[position() = 2]/div[position()=2]/div[@class='team-info']/h3/a/@href")
+        [homeTeamURL] = boxScoreTree.xpath("//div[@class='competitors']/div[@class='team home']/div[@class='content']/div[@class='team-container']/div[@class='team-info']/a/@href")
         #print(homeTeamURL)
         [a,b]=homeTeamURL.split("_")
         homeRosterURL = a + "roster/_" + b
         #print(homeRosterURL)
-        homeRosterPage = requests.get(homeRosterURL)
+        homeRosterPage = requests.get("http://espn.go.com" + homeRosterURL)
         homeRosterTree = html.fromstring(homeRosterPage.content)
         homePlayeridList = [x.split("player-46-")[1] for x in homeRosterTree.xpath("//tr[contains(@class,'player-46')]/@class")]
         #print(homePlayeridList)
@@ -312,7 +354,7 @@ def playerStatsConvert(statsList):
     
     positionNum = position_number_dict[statsList[0]]
 
-    if("DNP COACH'S DECISION" in statsList[1]):
+    if("COACH'S DECISION" in statsList[1]):
         return [positionNum, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 
     #strings #make-#attempted split into 2 int categories
@@ -353,52 +395,79 @@ def createPlayerMap(gameids,currentMap):
 
     for gameid in sorted(gameids):
         #print(gameid)
-        gameBoxScoreURL = "http://espn.go.com/nba/boxscore?gameId=" + gameid;
+        gameBoxScoreURL = "http://espn.go.com/nba/boxscore?gameId=" + gameid
         boxScorePage = requests.get(gameBoxScoreURL)
         boxScoreTree = html.fromstring(boxScorePage.content)
 
+        gameInfoURL = "http://espn.go.com/nba/game?gameId=" + gameid
+        gameInfoPage = requests.get(gameInfoURL)
+        gameInfoTree = html.fromstring(gameInfoPage.content)
 
         #first get game data not specific to each player (time,date,score,team numbers etc)
         gameDataList = []
         #print(gameid)
 
         try:
-            game_time_info = boxScoreTree.xpath("//div[@class='game-time-location']/p/text()")[0]
+            #game_time_info = boxScoreTree.xpath("//div[@class='game-time-location']/p/text()")[0] OLD ESPN
+            game_time_info = gameInfoTree.xpath("//div[@class='game-date-time']/span/@data-date")[0]
             #print(game_time_info)
 
-            [awayName,awayScore] = boxScoreTree.xpath("//div[@class='team away']/div/h3/*/text()")
-            [homeName,homeScore] = boxScoreTree.xpath("//div[@class='team home']/div/h3/*/text()")
+            #[awayName,awayScore] = boxScoreTree.xpath("//div[@class='team away']/div/h3/*/text()") OLD ESPN
+            #[homeName,homeScore] = boxScoreTree.xpath("//div[@class='team home']/div/h3/*/text()") OLD ESPN
+
+            [awayName] = boxScoreTree.xpath("//div[@class='team away']/div[@class='content']/div[@class='team-container']/div[@class='team-info']/a/span[@class='short-name']/text()")
+            [homeName] = boxScoreTree.xpath("//div[@class='team home']/div[@class='content']/div[@class='team-container']/div[@class='team-info']/a/span[@class='short-name']/text()")
+
+            [awayScore] = boxScoreTree.xpath("//div[@class='team away']/div[@class='content']/div[@class='score-container']/div/text()")
+            [homeScore] = boxScoreTree.xpath("//div[@class='team home']/div[@class='content']/div[@class='score-container']/div/text()")
+
             scoreDifference = int(awayScore) - int(homeScore)
             #print(scoreDifference)
             #print(awayName)
+            #print(homeName)
 
 
             #keep track of which players were on the away team and which were on the home team
-            [awayTeam] = boxScoreTree.xpath("//table/thead[position()=1]/tr[@class='team-color-strip']/th/text()")
-            awayTeamNum = team_dict[awayTeam]
-            awayPlayeridList = boxScoreTree.xpath("//table/tbody[position()=1 or position()=2]/tr[contains(@class,'player-46')]/@class")
-            awayPlayeridList = [x.split("player-46-")[1] for x in awayPlayeridList]
+            #[awayTeam] = boxScoreTree.xpath("//table/thead[position()=1]/tr[@class='team-color-strip']/th/text()")
+            awayTeamNum = team_dict[awayName]
+            #awayPlayeridList = boxScoreTree.xpath("//table/tbody[position()=1 or position()=2]/tr[contains(@class,'player-46')]/@class") OLD ESPN
+            #awayPlayeridList = [x.split("player-46-")[1] for x in awayPlayeridList]
+
+
+            
+            awayPlayerURLList = boxScoreTree.xpath("//div[@class='col column-one gamepackage-away-wrap']/div[@class='sub-module']/div[@class='content']/table/tbody/tr/td/a/@href")
+            awayPlayeridList = [x.split("_/id/")[1] for x in awayPlayerURLList]
             #print(awayPlayeridList)
 
-            [homeTeam] = boxScoreTree.xpath("//table/thead[position()=4]/tr[@class='team-color-strip']/th/text()")
-            homeTeamNum = team_dict[homeTeam]
-            homePlayeridList = boxScoreTree.xpath("//table/tbody[position()=4 or position()=5]/tr[contains(@class,'player-46')]/@class")
-            homePlayeridList = [x.split("player-46-")[1] for x in homePlayeridList]
-            #print(homePlayeridList)
+           # [homeTeam] = boxScoreTree.xpath("//table/thead[position()=4]/tr[@class='team-color-strip']/th/text()")
+            homeTeamNum = team_dict[homeName]
+            #homePlayeridList = boxScoreTree.xpath("//table/tbody[position()=4 or position()=5]/tr[contains(@class,'player-46')]/@class")
+            #homePlayeridList = [x.split("player-46-")[1] for x in homePlayeridList]
+
+            homePlayerURLList = boxScoreTree.xpath("//div[@class='col column-two gamepackage-home-wrap']/div[@class='sub-module']/div[@class='content']/table/tbody/tr/td/a/@href")
+            homePlayeridList = [x.split("_/id/")[1] for x in homePlayerURLList]
+           # print(homePlayeridList)
 
 
             #gets player stats for away players and appends that to the game stats
             for playerid in awayPlayeridList:
-                xPathString = "//tr[contains(@class,'player-46-" + playerid + "')]/*/text()"
+                xPathStatsString = "//tr[td/a/@href='http://espn.go.com/nba/player/_/id/" + playerid + "']/*/text()"
+               
+
+                xPathPositionString = "//tr[td/a/@href='http://espn.go.com/nba/player/_/id/" + playerid + "']/td/*/text()"
+                #print(xPathPositionString)
 
                 gameStatsList = []
                 # stores own team's number and also the opposing team's number
                 # 0 for away team and score difference is calc away score - home score
-                gameStatsList += date_time_convert(game_time_info) + [awayTeamNum, homeTeamNum] + [0,scoreDifference] 
+                gameStatsList += data_date_convert(game_time_info) + [awayTeamNum, homeTeamNum] + [0,scoreDifference] 
         
-                playerStatsList = boxScoreTree.xpath(xPathString)
+ 
+                playerStatsList = [boxScoreTree.xpath(xPathPositionString)[1]] + boxScoreTree.xpath(xPathStatsString)
+                
+                #print(playerStatsList)
 
-                if("DNP" not in playerStatsList[1] or "DNP COACH'S DECISION" in playerStatsList[1]):
+                if("DNP" not in playerStatsList[1] or "COACH'S DECISION" in playerStatsList[1]):
        
                 
                     playerStatsList = playerStatsConvert(playerStatsList)
@@ -415,15 +484,19 @@ def createPlayerMap(gameids,currentMap):
 
             #gets player stats for home players and appends that to the game stats
             for playerid in homePlayeridList:
-                xPathString = "//tr[contains(@class,'player-46-" + playerid + "')]/*/text()"
+                xPathStatsString = "//tr[td/a/@href='http://espn.go.com/nba/player/_/id/" + playerid + "']/*/text()"
+               
+
+                xPathPositionString = "//tr[td/a/@href='http://espn.go.com/nba/player/_/id/" + playerid + "']/td/*/text()"
+                #print(xPathPositionString)
 
                 gameStatsList = []
         
                 # stores own team's number and also the opposing team's number
                 # 1 for home team and score difference is calc away score - home score
-                gameStatsList += date_time_convert(game_time_info) + [homeTeamNum, awayTeamNum] + [1, -1 * scoreDifference]
+                gameStatsList += data_date_convert(game_time_info) + [homeTeamNum, awayTeamNum] + [1, -1 * scoreDifference]
 
-                playerStatsList = boxScoreTree.xpath(xPathString)
+                playerStatsList = [boxScoreTree.xpath(xPathPositionString)[1]] + boxScoreTree.xpath(xPathStatsString)
 
                 if("DNP" not in playerStatsList[1] or "DNP COACH'S DECISION" in playerStatsList[1]):
 
@@ -436,6 +509,7 @@ def createPlayerMap(gameids,currentMap):
                     #playerMap[playerid] = OrderedDict({gameid:(gameStatsList+playerStatsList)})
         except (IndexError):
             print("Game " + gameid + " does not exist")
+    print(playerMap)
 
     #need to UNION currentMap(defaultdict in file) and playerMap(recent games)
     for playerid,orderedDict in playerMap.items():
@@ -448,6 +522,7 @@ def createPlayerMap(gameids,currentMap):
             #print(type(gameid))
             currentMap[playerid][gameid] = statList
 
+    
     return currentMap
 
 
@@ -562,7 +637,7 @@ def generate_features(stats,today_stats):
 
          #print(list(todayFeatureList))
 
-     return (list(trainingFeatureList),list(testingFeatureList), list(todayFeatureList))
+     return (np.array(list(trainingFeatureList)),np.array(list(testingFeatureList)), np.array(list(todayFeatureList)))
 
 
 
@@ -667,7 +742,7 @@ def generate_labels(statsMap):
                  else:
                      testingLabelsList.append(gameLabels)
              count += 1
-    return (list(trainingLabelsList), list(testingLabelsList))
+    return (np.array(list(trainingLabelsList)), np.array(list(testingLabelsList)))
 
 
 
@@ -737,98 +812,461 @@ def create_preds(trainingFeatures_arr,trainingLabels_arr,testingFeatures_arr,tes
 
     #svr = svm.SVR()
 
+    #print(trainingFeatures_arr)
+    #print(trainingFeatures_arr.shape)
+    #print(trainingLabels_arr.shape)
+    #print(trainingLabels_arr)
 
-    #TODO
-    #find r2score for training predictions
+    
 
-
-    #regr = DecisionTreeRegressor(max_depth=3)
-    #regr.fit(trainingFeatures_arr,trainingLabels_arr)
-    #print("r2_score 3: %f" % r2_score(testingLabels_arr,regr.predict(testingFeatures_arr)))
-
-    #regr = DecisionTreeRegressor(max_depth=2)
-    #regr.fit(trainingFeatures_arr,trainingLabels_arr)
-    #print("r2_score 2: %f" % r2_score(testingLabels_arr,regr.predict(testingFeatures_arr)))
-
-    #regr = DecisionTreeRegressor(max_depth=1)
-    #regr.fit(trainingFeatures_arr,trainingLabels_arr)
-    #print("r2_score 1: %f" % r2_score(testingLabels_arr,regr.predict(testingFeatures_arr)))
+    regr = DecisionTreeRegressor(max_depth=6)
+    regr.fit(trainingFeatures_arr,trainingLabels_arr)
+    print("r2_score 6: %f" % r2_score(testingLabels_arr,regr.predict(testingFeatures_arr),multioutput='uniform_average'))
 
 
-    #regr = ElasticNet()
-    #regr.fit(trainingFeatures_arr,trainingLabels_arr[:,0])
-    #print("r2_score mins: %f" % r2_score(testingLabels_arr[:,0],regr.predict(testingFeatures_arr)))
 
-    #regr = ElasticNet()
-    #regr.fit(trainingFeatures_arr,trainingLabels_arr[:,1])
-    #print("r2_score fgm: %f" % r2_score(testingLabels_arr[:,1],regr.predict(testingFeatures_arr)))
+    minsPreds = []
+    regr1 = DecisionTreeRegressor(max_depth=6)
+    regr1.fit(trainingFeatures_arr,trainingLabels_arr[:,0])
+    r2score1 = r2_score(testingLabels_arr[:,0],regr1.predict(testingFeatures_arr))
+    regr2 = ElasticNet()
+    regr2.fit(trainingFeatures_arr,trainingLabels_arr[:,0])
+    r2score2 = r2_score(testingLabels_arr[:,0],regr2.predict(testingFeatures_arr))
+    if(r2score1 > r2score2):
+        print("Tree r2_score mins: %f" % r2score1)
+        regr1.fit(testingFeatures_arr,testingLabels_arr[:,0])
+        minsPreds = regr1.predict(todayFeatures_arr)
+    else:
+        print("EN r2_score mins: %f" % r2score2)
+        regr2.fit(testingFeatures_arr,testingLabels_arr[:,0])
+        minsPreds = regr2.predict(todayFeatures_arr)
+    #print(minsPreds)
 
-    #regr = ElasticNet()
-    #regr.fit(trainingFeatures_arr,trainingLabels_arr[:,2])
-    #print("r2_score fga: %f" % r2_score(testingLabels_arr[:,2],regr.predict(testingFeatures_arr)))
+    
+    
+    fgmPreds = []
+    regr1 = DecisionTreeRegressor(max_depth=6)
+    regr1.fit(trainingFeatures_arr,trainingLabels_arr[:,1])
+    r2score1 = r2_score(testingLabels_arr[:,1],regr1.predict(testingFeatures_arr))
+    regr2 = ElasticNet()
+    regr2.fit(trainingFeatures_arr,trainingLabels_arr[:,1])
+    r2score2 = r2_score(testingLabels_arr[:,1],regr2.predict(testingFeatures_arr))
+    if(r2score1 > r2score2):
+        print("Tree r2_score fgm: %f" % r2score1)
+        regr1.fit(testingFeatures_arr,testingLabels_arr[:,1])
+        fgmPreds = regr1.predict(todayFeatures_arr)
+    else:
+        print("EN r2_score fgm: %f" % r2score2)
+        regr2.fit(testingFeatures_arr,testingLabels_arr[:,1])
+        fgmPreds = regr2.predict(todayFeatures_arr)
+    #print(fgmPreds)
 
-    #regr = ElasticNet()
-    #regr.fit(trainingFeatures_arr,trainingLabels_arr[:,3])
-    #print("r2_score 3pm: %f" % r2_score(testingLabels_arr[:,3],regr.predict(testingFeatures_arr)))
 
-    #regr = ElasticNet()
-    #regr.fit(trainingFeatures_arr,trainingLabels_arr[:,4])
-    #print("r2_score 3pa: %f" % r2_score(testingLabels_arr[:,4],regr.predict(testingFeatures_arr)))
 
-    #regr = ElasticNet()
-    #regr.fit(trainingFeatures_arr,trainingLabels_arr[:,5])
-    #print("r2_score ftm: %f" % r2_score(testingLabels_arr[:,5],regr.predict(testingFeatures_arr)))
 
-    #regr = ElasticNet()
-    #regr.fit(trainingFeatures_arr,trainingLabels_arr[:,6])
-    #print("r2_score fta: %f" % r2_score(testingLabels_arr[:,6],regr.predict(testingFeatures_arr)))
+    
+    
+    fgaPreds = []
+    regr1 = DecisionTreeRegressor(max_depth=6)
+    regr1.fit(trainingFeatures_arr,trainingLabels_arr[:,2])
+    r2score1 = r2_score(testingLabels_arr[:,2],regr1.predict(testingFeatures_arr))
+    regr2 = ElasticNet()
+    regr2.fit(trainingFeatures_arr,trainingLabels_arr[:,2])
+    r2score2 = r2_score(testingLabels_arr[:,2],regr2.predict(testingFeatures_arr))
+    if(r2score1 > r2score2):
+        print("Tree r2_score fga: %f" % r2score1)
+        regr1.fit(testingFeatures_arr,testingLabels_arr[:,2])
+        fgaPreds = regr1.predict(todayFeatures_arr)
+    else:
+        print("EN r2_score fga: %f" % r2score2)
+        regr2.fit(testingFeatures_arr,testingLabels_arr[:,2])
+        fgaPreds = regr2.predict(todayFeatures_arr)
+    #print(fgaPreds)
 
-    #regr = ElasticNet()
-    #regr.fit(trainingFeatures_arr,trainingLabels_arr[:,7])
-    #print("r2_score dreb: %f" % r2_score(testingLabels_arr[:,7],regr.predict(testingFeatures_arr)))
 
-    #regr = ElasticNet()
-    #regr.fit(trainingFeatures_arr,trainingLabels_arr[:,8])
-    #print("r2_score oreb: %f" % r2_score(testingLabels_arr[:,8],regr.predict(testingFeatures_arr)))
+    tpmPreds = []
+    regr1 = DecisionTreeRegressor(max_depth=6)
+    regr1.fit(trainingFeatures_arr,trainingLabels_arr[:,3])
+    r2score1 = r2_score(testingLabels_arr[:,3],regr1.predict(testingFeatures_arr))
+    regr2 = ElasticNet()
+    regr2.fit(trainingFeatures_arr,trainingLabels_arr[:,3])
+    r2score2 = r2_score(testingLabels_arr[:,3],regr2.predict(testingFeatures_arr))
+    if(r2score1 > r2score2):
+        print("Tree r2_score 3pm: %f" % r2score1)
+        regr1.fit(testingFeatures_arr,testingLabels_arr[:,3])
+        tpmPreds = regr1.predict(todayFeatures_arr)
+    else:
+        print("EN r2_score 3pm: %f" % r2score2)
+        regr2.fit(testingFeatures_arr,testingLabels_arr[:,3])
+        tpmPreds = regr2.predict(todayFeatures_arr)
+    #print(tpmPreds)
 
-    #regr = ElasticNet()
-    #regr.fit(trainingFeatures_arr,trainingLabels_arr[:,9])
-    #print("r2_score reb: %f" % r2_score(testingLabels_arr[:,9],regr.predict(testingFeatures_arr)))
 
-    #regr = ElasticNet()
-    #regr.fit(trainingFeatures_arr,trainingLabels_arr[:,10])
-    #print("r2_score ast: %f" % r2_score(testingLabels_arr[:,10],regr.predict(testingFeatures_arr)))
+    tpaPreds = []
+    regr1 = DecisionTreeRegressor(max_depth=6)
+    regr1.fit(trainingFeatures_arr,trainingLabels_arr[:,4])
+    r2score1 = r2_score(testingLabels_arr[:,4],regr1.predict(testingFeatures_arr))
+    regr2 = ElasticNet()
+    regr2.fit(trainingFeatures_arr,trainingLabels_arr[:,4])
+    r2score2 = r2_score(testingLabels_arr[:,4],regr2.predict(testingFeatures_arr))
+    if(r2score1 > r2score2):
+        print("Tree r2_score 3pa: %f" % r2score1)
+        regr1.fit(testingFeatures_arr,testingLabels_arr[:,4])
+        tpaPreds = regr1.predict(todayFeatures_arr)
+    else:
+        print("EN r2_score 3pa: %f" % r2score2)
+        regr2.fit(testingFeatures_arr,testingLabels_arr[:,4])
+        tpaPreds = regr2.predict(todayFeatures_arr)
+    #print(tpaPreds)
 
-    #regr = ElasticNet()
-    #regr.fit(trainingFeatures_arr,trainingLabels_arr[:,11])
-    #print("r2_score stl: %f" % r2_score(testingLabels_arr[:,11],regr.predict(testingFeatures_arr)))
 
-    #regr = ElasticNet()
-    #regr.fit(trainingFeatures_arr,trainingLabels_arr[:,12])
-    #print("r2_score blk: %f" % r2_score(testingLabels_arr[:,12],regr.predict(testingFeatures_arr)))
+    
+    ftmPreds = []
+    regr1 = DecisionTreeRegressor(max_depth=6)
+    regr1.fit(trainingFeatures_arr,trainingLabels_arr[:,5])
+    r2score1 = r2_score(testingLabels_arr[:,5],regr1.predict(testingFeatures_arr))
+    regr2 = ElasticNet()
+    regr2.fit(trainingFeatures_arr,trainingLabels_arr[:,5])
+    r2score2 = r2_score(testingLabels_arr[:,5],regr2.predict(testingFeatures_arr))
+    if(r2score1 > r2score2):
+        print("Tree r2_score ftm: %f" % r2score1)
+        regr1.fit(testingFeatures_arr,testingLabels_arr[:,5])
+        ftmPreds = regr1.predict(todayFeatures_arr)
+    else:
+        print("EN r2_score ftm: %f" % r2score2)
+        regr2.fit(testingFeatures_arr,testingLabels_arr[:,5])
+        ftmPreds = regr2.predict(todayFeatures_arr)
+    #print(ftmPreds)
 
-    #regr = ElasticNet()
-    #regr.fit(trainingFeatures_arr,trainingLabels_arr[:,13])
-    #print("r2_score to: %f" % r2_score(testingLabels_arr[:,13],regr.predict(testingFeatures_arr)))
 
-    #regr = ElasticNet()
-    #regr.fit(trainingFeatures_arr,trainingLabels_arr[:,14])
-    #print("r2_score pf: %f" % r2_score(testingLabels_arr[:,14],regr.predict(testingFeatures_arr)))
 
-    #regr = ElasticNet()
-    #regr.fit(trainingFeatures_arr,trainingLabels_arr[:,15])
-    #print("r2_score +/-: %f" % r2_score(testingLabels_arr[:,15],regr.predict(testingFeatures_arr)))
 
-    #regr = ElasticNet()
+    ftaPreds = []
+    regr1 = DecisionTreeRegressor(max_depth=6)
+    regr1.fit(trainingFeatures_arr,trainingLabels_arr[:,6])
+    r2score1 = r2_score(testingLabels_arr[:,6],regr1.predict(testingFeatures_arr))
+    regr2 = ElasticNet()
+    regr2.fit(trainingFeatures_arr,trainingLabels_arr[:,6])
+    r2score2 = r2_score(testingLabels_arr[:,6],regr2.predict(testingFeatures_arr))
+    if(r2score1 > r2score2):
+        print("Tree r2_score fta: %f" % r2score1)
+        regr1.fit(testingFeatures_arr,testingLabels_arr[:,6])
+        ftaPreds = regr1.predict(todayFeatures_arr)
+    else:
+        print("EN r2_score fta: %f" % r2score2)
+        regr2.fit(testingFeatures_arr,testingLabels_arr[:,6])
+        ftaPreds = regr2.predict(todayFeatures_arr)
+    #print(ftaPreds)
+
+    
+
+    drebPreds = []
+    regr1 = DecisionTreeRegressor(max_depth=6)
+    regr1.fit(trainingFeatures_arr,trainingLabels_arr[:,7])
+    r2score1 = r2_score(testingLabels_arr[:,7],regr1.predict(testingFeatures_arr))
+    regr2 = ElasticNet()
+    regr2.fit(trainingFeatures_arr,trainingLabels_arr[:,7])
+    r2score2 = r2_score(testingLabels_arr[:,7],regr2.predict(testingFeatures_arr))
+    if(r2score1 > r2score2):
+        print("Tree r2_score dreb: %f" % r2score1)
+        regr1.fit(testingFeatures_arr,testingLabels_arr[:,7])
+        drebPreds = regr1.predict(todayFeatures_arr)
+    else:
+        print("EN r2_score dreb: %f" % r2score2)
+        regr2.fit(testingFeatures_arr,testingLabels_arr[:,7])
+        drebPreds = regr2.predict(todayFeatures_arr)
+    #print(drebPreds)
+
+
+        
+
+    orebPreds = []
+    regr1 = DecisionTreeRegressor(max_depth=6)
+    regr1.fit(trainingFeatures_arr,trainingLabels_arr[:,8])
+    r2score1 = r2_score(testingLabels_arr[:,8],regr1.predict(testingFeatures_arr))
+    regr2 = ElasticNet()
+    regr2.fit(trainingFeatures_arr,trainingLabels_arr[:,8])
+    r2score2 = r2_score(testingLabels_arr[:,8],regr2.predict(testingFeatures_arr))
+    if(r2score1 > r2score2):
+        print("Tree r2_score oreb: %f" % r2score1)
+        regr1.fit(testingFeatures_arr,testingLabels_arr[:,8])
+        orebPreds = regr1.predict(todayFeatures_arr)
+    else:
+        print("EN r2_score oreb: %f" % r2score2)
+        regr2.fit(testingFeatures_arr,testingLabels_arr[:,8])
+        orebPreds = regr2.predict(todayFeatures_arr)
+    #print(orebPreds)
+
+
+
+    rebPreds = []
+    regr1 = DecisionTreeRegressor(max_depth=6)
+    regr1.fit(trainingFeatures_arr,trainingLabels_arr[:,9])
+    r2score1 = r2_score(testingLabels_arr[:,9],regr1.predict(testingFeatures_arr))
+    regr2 = ElasticNet()
+    regr2.fit(trainingFeatures_arr,trainingLabels_arr[:,9])
+    r2score2 = r2_score(testingLabels_arr[:,9],regr2.predict(testingFeatures_arr))
+    if(r2score1 > r2score2):
+        print("Tree r2_score reb: %f" % r2score1)
+        regr1.fit(testingFeatures_arr,testingLabels_arr[:,9])
+        rebPreds = regr1.predict(todayFeatures_arr)
+    else:
+        print("EN r2_score oreb: %f" % r2score2)
+        regr2.fit(testingFeatures_arr,testingLabels_arr[:,9])
+        rebPreds = regr2.predict(todayFeatures_arr)
+    #print(rebPreds)
+
+
+    astPreds = []
+    regr1 = DecisionTreeRegressor(max_depth=6)
+    regr1.fit(trainingFeatures_arr,trainingLabels_arr[:,10])
+    r2score1 = r2_score(testingLabels_arr[:,10],regr1.predict(testingFeatures_arr))
+    regr2 = ElasticNet()
+    regr2.fit(trainingFeatures_arr,trainingLabels_arr[:,10])
+    r2score2 = r2_score(testingLabels_arr[:,10],regr2.predict(testingFeatures_arr))
+    if(r2score1 > r2score2):
+        print("Tree r2_score ast: %f" % r2score1)
+        regr1.fit(testingFeatures_arr,testingLabels_arr[:,10])
+        astPreds = regr1.predict(todayFeatures_arr)
+    else:
+        print("EN r2_score ast: %f" % r2score2)
+        regr2.fit(testingFeatures_arr,testingLabels_arr[:,10])
+        astPreds = regr2.predict(todayFeatures_arr)
+    #print(astPreds)
+
+
+    stlPreds = []
+    regr1 = DecisionTreeRegressor(max_depth=6)
+    regr1.fit(trainingFeatures_arr,trainingLabels_arr[:,11])
+    r2score1 = r2_score(testingLabels_arr[:,11],regr1.predict(testingFeatures_arr))
+    regr2 = ElasticNet()
+    regr2.fit(trainingFeatures_arr,trainingLabels_arr[:,11])
+    r2score2 = r2_score(testingLabels_arr[:,11],regr2.predict(testingFeatures_arr))
+    if(r2score1 > r2score2):
+        print("Tree r2_score stl: %f" % r2score1)
+        regr1.fit(testingFeatures_arr,testingLabels_arr[:,11])
+        stlPreds = regr1.predict(todayFeatures_arr)
+    else:
+        print("EN r2_score stl: %f" % r2score2)
+        regr2.fit(testingFeatures_arr,testingLabels_arr[:,11])
+        stlPreds = regr2.predict(todayFeatures_arr)
+    #print(stlPreds)
+
+
+    
+    blkPreds = []
+    regr1 = DecisionTreeRegressor(max_depth=6)
+    regr1.fit(trainingFeatures_arr,trainingLabels_arr[:,12])
+    r2score1 = r2_score(testingLabels_arr[:,12],regr1.predict(testingFeatures_arr))
+    regr2 = ElasticNet()
+    regr2.fit(trainingFeatures_arr,trainingLabels_arr[:,12])
+    r2score2 = r2_score(testingLabels_arr[:,12],regr2.predict(testingFeatures_arr))
+    if(r2score1 > r2score2):
+        print("Tree r2_score blk: %f" % r2score1)
+        regr1.fit(testingFeatures_arr,testingLabels_arr[:,12])
+        blkPreds = regr1.predict(todayFeatures_arr)
+    else:
+        print("EN r2_score blk: %f" % r2score2)
+        regr2.fit(testingFeatures_arr,testingLabels_arr[:,12])
+        blkPreds = regr2.predict(todayFeatures_arr)
+    #print(blkPreds)
+
+
+        
+    toPreds = []
+    regr1 = DecisionTreeRegressor(max_depth=6)
+    regr1.fit(trainingFeatures_arr,trainingLabels_arr[:,13])
+    r2score1 = r2_score(testingLabels_arr[:,13],regr1.predict(testingFeatures_arr))
+    regr2 = ElasticNet()
+    regr2.fit(trainingFeatures_arr,trainingLabels_arr[:,13])
+    r2score2 = r2_score(testingLabels_arr[:,13],regr2.predict(testingFeatures_arr))
+    if(r2score1 > r2score2):
+        print("Tree r2_score to: %f" % r2score1)
+        regr1.fit(testingFeatures_arr,testingLabels_arr[:,13])
+        toPreds = regr1.predict(todayFeatures_arr)
+    else:
+        print("EN r2_score to: %f" % r2score2)
+        regr2.fit(testingFeatures_arr,testingLabels_arr[:,13])
+        toPreds = regr2.predict(todayFeatures_arr)
+    #print(toPreds)
+           
+
+
+
+    pfPreds = []
+    regr1 = DecisionTreeRegressor(max_depth=6)
+    regr1.fit(trainingFeatures_arr,trainingLabels_arr[:,14])
+    r2score1 = r2_score(testingLabels_arr[:,14],regr1.predict(testingFeatures_arr))
+    regr2 = ElasticNet()
+    regr2.fit(trainingFeatures_arr,trainingLabels_arr[:,14])
+    r2score2 = r2_score(testingLabels_arr[:,14],regr2.predict(testingFeatures_arr))
+    if(r2score1 > r2score2):
+        print("Tree r2_score pf: %f" % r2score1)
+        regr1.fit(testingFeatures_arr,testingLabels_arr[:,14])
+        pfPreds = regr1.predict(todayFeatures_arr)
+    else:
+        print("EN r2_score pf: %f" % r2score2)
+        regr2.fit(testingFeatures_arr,testingLabels_arr[:,14])
+        pfPreds = regr2.predict(todayFeatures_arr)
+    #print(pfPreds)
+
+    
+
+    pmPreds = []
+    regr1 = DecisionTreeRegressor(max_depth=6)
+    regr1.fit(trainingFeatures_arr,trainingLabels_arr[:,15])
+    r2score1 = r2_score(testingLabels_arr[:,15],regr1.predict(testingFeatures_arr))
+    regr2 = ElasticNet()
+    regr2.fit(trainingFeatures_arr,trainingLabels_arr[:,15])
+    r2score2 = r2_score(testingLabels_arr[:,15],regr2.predict(testingFeatures_arr))
+    if(r2score1 > r2score2):
+        print("Tree r2_score +/-: %f" % r2score1)
+        regr1.fit(testingFeatures_arr,testingLabels_arr[:,15])
+        pmPreds = regr1.predict(todayFeatures_arr)
+    else:
+        print("EN r2_score +/-: %f" % r2score2)
+        regr2.fit(testingFeatures_arr,testingLabels_arr[:,15])
+        pmPreds = regr2.predict(todayFeatures_arr)
+    #print(pmPreds)
+
+        
+
+    ptsPreds = []
+    regr1 = DecisionTreeRegressor(max_depth=6)
+    regr1.fit(trainingFeatures_arr,trainingLabels_arr[:,16])
+    r2score1 = r2_score(testingLabels_arr[:,16],regr1.predict(testingFeatures_arr))
+    regr2 = ElasticNet()
+    regr2.fit(trainingFeatures_arr,trainingLabels_arr[:,16])
+    r2score2 = r2_score(testingLabels_arr[:,16],regr2.predict(testingFeatures_arr))
+    if(r2score1 > r2score2):
+        print("Tree r2_score pts: %f" % r2score1)
+        regr1.fit(testingFeatures_arr,testingLabels_arr[:,16])
+        ptsPreds = regr1.predict(todayFeatures_arr)
+    else:
+        print("EN r2_score pts: %f" % r2score2)
+        regr2.fit(testingFeatures_arr,testingLabels_arr[:,16])
+        ptsPreds = regr2.predict(todayFeatures_arr)
+    #print(ptsPreds)
+
+
+    #regr = DecisionTreeRegressor(max_depth=6)
     #regr.fit(trainingFeatures_arr,trainingLabels_arr[:,16])
     #print("r2_score pts: %f" % r2_score(testingLabels_arr[:,16],regr.predict(testingFeatures_arr)))
 
 
-    regr = ElasticNet()
-    regr.fit(np.vstack((trainingFeatures_arr,testingFeatures_arr)),np.vstack((trainingLabels_arr,testingLabels_arr)))
-    #print(regr.predict(todayFeatures_arr))
+    #regr = AdaBoostRegressor(DecisionTreeRegressor(max_depth=2),n_estimators=300)
+    #regr.fit(trainingFeatures_arr,trainingLabels_arr[:,0])
+    #print("r2_score mins: %f" % r2_score(testingLabels_arr[:,0],regr.predict(testingFeatures_arr)))
 
-    preds = regr.predict(todayFeatures_arr)
+    #regr = AdaBoostRegressor(DecisionTreeRegressor(max_depth=2),n_estimators=300)
+    #regr.fit(trainingFeatures_arr,trainingLabels_arr[:,1])
+    #print("r2_score fgm: %f" % r2_score(testingLabels_arr[:,1],regr.predict(testingFeatures_arr)))
+
+    #regr = AdaBoostRegressor(DecisionTreeRegressor(max_depth=2),n_estimators=300)
+    #regr.fit(trainingFeatures_arr,trainingLabels_arr[:,2])
+    #print("r2_score fga: %f" % r2_score(testingLabels_arr[:,2],regr.predict(testingFeatures_arr)))
+
+    #regr = AdaBoostRegressor(DecisionTreeRegressor(max_depth=2),n_estimators=300)
+    #regr.fit(trainingFeatures_arr,trainingLabels_arr[:,3])
+    #print("r2_score 3pm: %f" % r2_score(testingLabels_arr[:,3],regr.predict(testingFeatures_arr)))
+
+    #regr = AdaBoostRegressor(DecisionTreeRegressor(max_depth=2),n_estimators=300)
+    #regr.fit(trainingFeatures_arr,trainingLabels_arr[:,4])
+    #print("r2_score 3pa: %f" % r2_score(testingLabels_arr[:,4],regr.predict(testingFeatures_arr)))
+
+    #regr = AdaBoostRegressor(DecisionTreeRegressor(max_depth=2),n_estimators=300)
+    #regr.fit(trainingFeatures_arr,trainingLabels_arr[:,5])
+    #print("r2_score ftm: %f" % r2_score(testingLabels_arr[:,5],regr.predict(testingFeatures_arr)))
+
+    #regr = AdaBoostRegressor(DecisionTreeRegressor(max_depth=2),n_estimators=300)
+    #regr.fit(trainingFeatures_arr,trainingLabels_arr[:,6])
+    #print("r2_score fta: %f" % r2_score(testingLabels_arr[:,6],regr.predict(testingFeatures_arr)))
+
+    #regr = AdaBoostRegressor(DecisionTreeRegressor(max_depth=2),n_estimators=300)
+    #regr.fit(trainingFeatures_arr,trainingLabels_arr[:,7])
+    #print("r2_score dreb: %f" % r2_score(testingLabels_arr[:,7],regr.predict(testingFeatures_arr)))
+
+    #regr = AdaBoostRegressor(DecisionTreeRegressor(max_depth=2),n_estimators=300)
+    #regr.fit(trainingFeatures_arr,trainingLabels_arr[:,8])
+    #print("r2_score oreb: %f" % r2_score(testingLabels_arr[:,8],regr.predict(testingFeatures_arr)))
+
+    #regr = AdaBoostRegressor(DecisionTreeRegressor(max_depth=2),n_estimators=300)
+    #regr.fit(trainingFeatures_arr,trainingLabels_arr[:,9])
+    #print("r2_score reb: %f" % r2_score(testingLabels_arr[:,9],regr.predict(testingFeatures_arr)))
+
+    #regr = AdaBoostRegressor(DecisionTreeRegressor(max_depth=2),n_estimators=300)
+    #regr.fit(trainingFeatures_arr,trainingLabels_arr[:,10])
+    #print("r2_score ast: %f" % r2_score(testingLabels_arr[:,10],regr.predict(testingFeatures_arr)))
+
+    #regr = AdaBoostRegressor(DecisionTreeRegressor(max_depth=2),n_estimators=300)
+    #regr.fit(trainingFeatures_arr,trainingLabels_arr[:,11])
+    #print("r2_score stl: %f" % r2_score(testingLabels_arr[:,11],regr.predict(testingFeatures_arr)))
+
+    #regr = AdaBoostRegressor(DecisionTreeRegressor(max_depth=2),n_estimators=300)
+    #regr.fit(trainingFeatures_arr,trainingLabels_arr[:,12])
+    #print("r2_score blk: %f" % r2_score(testingLabels_arr[:,12],regr.predict(testingFeatures_arr)))
+
+    #regr = AdaBoostRegressor(DecisionTreeRegressor(max_depth=2),n_estimators=300)
+    #regr.fit(trainingFeatures_arr,trainingLabels_arr[:,13])
+    #print("r2_score to: %f" % r2_score(testingLabels_arr[:,13],regr.predict(testingFeatures_arr)))
+
+    #regr = AdaBoostRegressor(DecisionTreeRegressor(max_depth=2),n_estimators=300)
+    #regr.fit(trainingFeatures_arr,trainingLabels_arr[:,14])
+    #print("r2_score pf: %f" % r2_score(testingLabels_arr[:,14],regr.predict(testingFeatures_arr)))
+
+    #regr = AdaBoostRegressor(DecisionTreeRegressor(max_depth=2),n_estimators=300)
+    #regr.fit(trainingFeatures_arr,trainingLabels_arr[:,15])
+    #print("r2_score +/-: %f" % r2_score(testingLabels_arr[:,15],regr.predict(testingFeatures_arr)))
+
+    #regr = AdaBoostRegressor(DecisionTreeRegressor(max_depth=2),n_estimators=300)
+    #regr.fit(trainingFeatures_arr,trainingLabels_arr[:,16])
+    #print("r2_score pts: %f" % r2_score(testingLabels_arr[:,16],regr.predict(testingFeatures_arr)))
+
+    #print(minsPreds.shape)
+    #print(fgmPreds.shape)
+    #print(fgaPreds.shape)
+    #print(tpmPreds.shape)
+    #print(tpaPreds.shape)
+    #print(ftmPreds.shape)
+    #print(ftaPreds.shape)
+    #print(drebPreds.shape)
+    #print(orebPreds.shape)
+    #print(rebPreds.shape)
+    #print(astPreds.shape)
+    #print(stlPreds.shape)
+    #print(blkPreds.shape)
+    #print(toPreds.shape)
+    #print(pfPreds.shape)
+    #print(pmPreds.shape)
+    #print(ptsPreds.shape)
+
+    stacked = np.vstack((minsPreds,fgmPreds,fgaPreds,tpmPreds,tpaPreds,ftmPreds,ftaPreds,drebPreds,orebPreds,rebPreds,astPreds,stlPreds,blkPreds,toPreds,pfPreds,pmPreds,ptsPreds))
+    print(stacked.shape)
+
+    preds = stacked.T
+    #print(preds.shape)
+
+
+    #regr = ElasticNet()
+    #regr.fit(np.vstack((trainingFeatures_arr,testingFeatures_arr)),np.vstack((trainingLabels_arr,testingLabels_arr)))
+    #print("1: %f" % r2_score(testingLabels_arr,regr.predict(testingFeatures_arr),multioutput='uniform_average'))
+
+    #regr = ElasticNet()
+    #regr.fit(trainingFeatures_arr,trainingLabels_arr)
+    #regr.fit(testingFeatures_arr,testingLabels_arr)
+    #print("2: %f" % r2_score(testingLabels_arr,regr.predict(testingFeatures_arr),multioutput='uniform_average'))
+
+    #regr = DecisionTreeRegressor(max_depth=6)
+    #regr.fit(np.vstack((trainingFeatures_arr,testingFeatures_arr)),np.vstack((trainingLabels_arr,testingLabels_arr)))
+    ##regr.fit(trainingFeatures_arr,trainingLabels_arr)
+    ##print(regr.predict(todayFeatures_arr))
+
+    ##print("ElasticNet r2 score is %f" % r2_score( regr.predict(testingFeatures_arr),testingLabels_arr))
+
+    #preds = regr.predict(todayFeatures_arr)
+
+    #print(preds.shape)
+ 
 
     return preds
 
@@ -1216,7 +1654,7 @@ def format_print(resultList):
 
 
 
-
+print("Reading previously stored player-stats map")
 (lastModifiedDate,currentMap) = readPlayerStatsFile()
 isUpdated = (lastModifiedDate == datetime.date.today())
 
@@ -1274,6 +1712,7 @@ print("Combining Fanduel Data with Predicted Data")
 playerList = gen_description_and_fanduel_map(dictionary,csvFileName)
 
 #write_playerList(playerList)
+
 print("Done using Fanduel Data and now optimizing to find best predicted line-up")
 
 #playerList = readPlayerList()
@@ -1292,3 +1731,8 @@ format_print(result)
 #IT SEEMS DIFFICULT / AGAINST THE TERMS OF SERVICE
 #getPlayerList("14619-22471320")
 #fanduel_scrape("FanDuel-NBA-2016-02-03-14597-players-list.csv")
+
+
+#(trainingFeatures_arr,trainingLabels_arr,todayFeatures_arr,testingFeatures_arr,testingLabels_arr) = readCSVFiles()
+#preds = create_preds(trainingFeatures_arr,trainingLabels_arr,testingFeatures_arr,testingLabels_arr,todayFeatures_arr)
+#write_preds(preds)
