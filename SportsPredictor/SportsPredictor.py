@@ -172,14 +172,17 @@ def data_date_convert(str):
     year = int(year)
     month = int(month)
     day = int(day)
+
+    dateGame = datetime.date(year,month,day)
+
     hour = (int(time[0:2]) + 7)
     if(hour > 24):
         hour = hour % 24
     else:
-        day = day -1
+        dateGame = dateGame - datetime.timedelta(days = 1)
     min = int(time[3:5])
     time = hour + float(min)/60
-    return [int(month),int(day),int(year),time]
+    return [int(dateGame.month),int(dateGame.day),int(dateGame.year),time]
 
 
     
@@ -228,14 +231,14 @@ def create_todays_playerMap():
     schedulePage = requests.get("http://espn.go.com/nba/schedule")
     scheduleTree = html.fromstring(schedulePage.content)
     #print(scheduleTree.xpath("//div[@class='basketball']/div[@id='sched-container']/div[position()=2]/table/caption"))
-    [date] = scheduleTree.xpath("//div[@class='basketball']/div[@id='sched-container']/div[position()=2]/table/caption/text()")
+    date = scheduleTree.xpath("//div[@class='basketball']/div[@id='sched-container']/div[position()=2]/table/caption/text()")[0]
     date = strToDate(date)
     #print(date)
 
     if(date != datetime.date.today()):
         print("ESPN's schedule page has not updated for today's games")
         #exit()
-        [date] = scheduleTree.xpath("//div[@class='basketball']/div[@id='sched-container']/div[position()=3]/table/caption/text()")
+        date = scheduleTree.xpath("//div[@class='basketball']/div[@id='sched-container']/div[position()=3]/table/caption/text()")[0]
         date = strToDate(date)
         
         todaysGameIDs = [x.split("=")[1] for x in scheduleTree.xpath("//div[@class='basketball']/div[@id='sched-container']/div[position()=3]/table/tbody/tr/td[position()=3]/a/@href")]
@@ -270,14 +273,14 @@ def create_todays_playerMap():
 
         #print(boxScoreTree.xpath("//div[@class='competitors']/*"))
 
-        [awayTeamName] = boxScoreTree.xpath("//div[@class='competitors']/div[@class='team away']/div[@class='content']/div[@class='team-container']/div[@class='team-info']/a/span[@class='short-name']/text()")
-        [homeTeamName] = boxScoreTree.xpath("//div[@class='competitors']/div[@class='team home']/div[@class='content']/div[@class='team-container']/div[@class='team-info']/a/span[@class='short-name']/text()")
+        awayTeamName = boxScoreTree.xpath("//div[@class='competitors']/div[@class='team away']/div[@class='content']/div[@class='team-container']/div[@class='team-info']/a/span[@class='short-name']/text()")[0]
+        homeTeamName = boxScoreTree.xpath("//div[@class='competitors']/div[@class='team home']/div[@class='content']/div[@class='team-container']/div[@class='team-info']/a/span[@class='short-name']/text()")[0]
 
         #print(awayTeamName)
         #print(homeTeamName)
 
 
-        [awayTeamURL] = boxScoreTree.xpath("//div[@class='competitors']/div[@class='team away']/div[@class='content']/div[@class='team-container']/div[@class='team-info']/a/@href")
+        awayTeamURL = boxScoreTree.xpath("//div[@class='competitors']/div[@class='team away']/div[@class='content']/div[@class='team-container']/div[@class='team-info']/a/@href")[0]
         #print(awayTeamName)
         [a,b]=awayTeamURL.split("_")
         awayRosterURL = a + "roster/_" + b
@@ -290,7 +293,7 @@ def create_todays_playerMap():
             today_playerMap[playerid][gameid] = [m,d,y,t,team_dict[awayTeamName],team_dict[homeTeamName],0]
 
     
-        [homeTeamURL] = boxScoreTree.xpath("//div[@class='competitors']/div[@class='team home']/div[@class='content']/div[@class='team-container']/div[@class='team-info']/a/@href")
+        homeTeamURL = boxScoreTree.xpath("//div[@class='competitors']/div[@class='team home']/div[@class='content']/div[@class='team-container']/div[@class='team-info']/a/@href")[0]
         #print(homeTeamURL)
         [a,b]=homeTeamURL.split("_")
         homeRosterURL = a + "roster/_" + b
@@ -309,7 +312,7 @@ def extractNewGameIDs(gameidsList,dateList):
     #print(gameidsList)
     #print(dateList)
     #print(lastModifiedDate)
-    i=0
+    #i=0
     for i in range(0,len(dateList)):
         
         dateStr = dateList[i]
@@ -320,7 +323,9 @@ def extractNewGameIDs(gameidsList,dateList):
             #print(date)
             break
     #print(str(i))
-    #print(dateList[i:])
+    if(lastModifiedDate > strToDate(dateList[i])):
+        return []
+    #eprint(dateList[i:])
     return gameidsList[i:]
 
 
@@ -351,10 +356,12 @@ def getNewGameIDs():
 
 #takes list of string statistics and converts to numbers
 def playerStatsConvert(statsList):
+
+    #print(statsList)
     
     positionNum = position_number_dict[statsList[0]]
 
-    if("COACH'S DECISION" in statsList[1]):
+    if("COACH'S DECISION" in statsList[1] or "--" in statsList[1]):
         return [positionNum, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 
     #strings #make-#attempted split into 2 int categories
@@ -392,9 +399,9 @@ def createPlayerMap(gameids,currentMap):
     playerMap = defaultdict(OrderedDict)
     #playerMap = OrderedDict()
 
-
+    
     for gameid in sorted(gameids):
-        #print(gameid)
+       # print(gameid)
         gameBoxScoreURL = "http://espn.go.com/nba/boxscore?gameId=" + gameid
         boxScorePage = requests.get(gameBoxScoreURL)
         boxScoreTree = html.fromstring(boxScorePage.content)
@@ -410,18 +417,31 @@ def createPlayerMap(gameids,currentMap):
         try:
             #game_time_info = boxScoreTree.xpath("//div[@class='game-time-location']/p/text()")[0] OLD ESPN
             game_time_info = gameInfoTree.xpath("//div[@class='game-date-time']/span/@data-date")[0]
+            OTfinalStatus = gameInfoTree.xpath("//div[@class='game-status']/span/text()")[0]
+            if("OT" in OTfinalStatus):
+
+                [_,ot] = OTfinalStatus.split("/")
+                if (ot == "OT"):
+                    overtime = 1
+                else:
+                    overtime = int(ot[0])
+            else:
+                overtime = 0
+            #print(OTfinalStatus)
             #print(game_time_info)
 
             #[awayName,awayScore] = boxScoreTree.xpath("//div[@class='team away']/div/h3/*/text()") OLD ESPN
             #[homeName,homeScore] = boxScoreTree.xpath("//div[@class='team home']/div/h3/*/text()") OLD ESPN
 
-            [awayName] = boxScoreTree.xpath("//div[@class='team away']/div[@class='content']/div[@class='team-container']/div[@class='team-info']/a/span[@class='short-name']/text()")
-            [homeName] = boxScoreTree.xpath("//div[@class='team home']/div[@class='content']/div[@class='team-container']/div[@class='team-info']/a/span[@class='short-name']/text()")
+            awayName = boxScoreTree.xpath("//div[@class='team away']/div[@class='content']/div[@class='team-container']/div[@class='team-info']/a/span[@class='short-name']/text()")[0]
+            homeName = boxScoreTree.xpath("//div[@class='team home']/div[@class='content']/div[@class='team-container']/div[@class='team-info']/a/span[@class='short-name']/text()")[0]
 
-            [awayScore] = boxScoreTree.xpath("//div[@class='team away']/div[@class='content']/div[@class='score-container']/div/text()")
-            [homeScore] = boxScoreTree.xpath("//div[@class='team home']/div[@class='content']/div[@class='score-container']/div/text()")
+            awayScore = boxScoreTree.xpath("//div[@class='team away']/div[@class='content']/div[@class='score-container']/div/text()")[0]
+            homeScore = boxScoreTree.xpath("//div[@class='team home']/div[@class='content']/div[@class='score-container']/div/text()")[0]
 
-            scoreDifference = int(awayScore) - int(homeScore)
+            #scoreDifference = int(awayScore) - int(homeScore)
+
+
             #print(scoreDifference)
             #print(awayName)
             #print(homeName)
@@ -432,44 +452,78 @@ def createPlayerMap(gameids,currentMap):
             awayTeamNum = team_dict[awayName]
             #awayPlayeridList = boxScoreTree.xpath("//table/tbody[position()=1 or position()=2]/tr[contains(@class,'player-46')]/@class") OLD ESPN
             #awayPlayeridList = [x.split("player-46-")[1] for x in awayPlayeridList]
-
-
             
-            awayPlayerURLList = boxScoreTree.xpath("//div[@class='col column-one gamepackage-away-wrap']/div[@class='sub-module']/div[@class='content']/table/tbody/tr/td/a/@href")
+            #print(boxScoreTree.xpath("//tr/td/a/@href"))
+            #print(boxScoreTree.xpath("//div[@class='col column-one gamepackage-away-wrap']/*"))
+            #print(boxScoreTree.xpath("//div[@class='col column-one gamepackage-away-wrap']/div[@class='sub-module']/*"))
+            #print(boxScoreTree.xpath("//div[@class='col column-one gamepackage-away-wrap']/div[@class='sub-module']/div/table/tbody/tr/td/a/@href"))
+            awayPlayerURLList = boxScoreTree.xpath("//div[@class='col column-one gamepackage-away-wrap']/div[@class='sub-module']/div/table/tbody/tr/td/a/@href")
             awayPlayeridList = [x.split("_/id/")[1] for x in awayPlayerURLList]
+            awayStarteridList = awayPlayeridList[0:5]
+            awayBenchidList = awayPlayeridList[5:]
             #print(awayPlayeridList)
+
+
 
            # [homeTeam] = boxScoreTree.xpath("//table/thead[position()=4]/tr[@class='team-color-strip']/th/text()")
             homeTeamNum = team_dict[homeName]
             #homePlayeridList = boxScoreTree.xpath("//table/tbody[position()=4 or position()=5]/tr[contains(@class,'player-46')]/@class")
             #homePlayeridList = [x.split("player-46-")[1] for x in homePlayeridList]
 
-            homePlayerURLList = boxScoreTree.xpath("//div[@class='col column-two gamepackage-home-wrap']/div[@class='sub-module']/div[@class='content']/table/tbody/tr/td/a/@href")
+            homePlayerURLList = boxScoreTree.xpath("//div[@class='col column-two gamepackage-home-wrap']/div[@class='sub-module']/div/table/tbody/tr/td/a/@href")
             homePlayeridList = [x.split("_/id/")[1] for x in homePlayerURLList]
-           # print(homePlayeridList)
+            homeStarteridList = homePlayeridList[0:5]
+            homeBenchidList = homePlayeridList[5:]
+            #print(homePlayeridList)
 
 
             #gets player stats for away players and appends that to the game stats
-            for playerid in awayPlayeridList:
+            for playerid in awayStarteridList:
                 xPathStatsString = "//tr[td/a/@href='http://espn.go.com/nba/player/_/id/" + playerid + "']/*/text()"
-               
-
                 xPathPositionString = "//tr[td/a/@href='http://espn.go.com/nba/player/_/id/" + playerid + "']/td/*/text()"
                 #print(xPathPositionString)
 
                 gameStatsList = []
                 # stores own team's number and also the opposing team's number
-                # 0 for away team and score difference is calc away score - home score
-                gameStatsList += data_date_convert(game_time_info) + [awayTeamNum, homeTeamNum] + [0,scoreDifference] 
-        
+                # 0 for away team and then away score (own score) then home score (other score)
+                # then 1 for being a starter
+                gameStatsList += data_date_convert(game_time_info) + [awayTeamNum, homeTeamNum] + [0,int(awayScore),int(homeScore), overtime, 1]      
  
                 playerStatsList = [boxScoreTree.xpath(xPathPositionString)[1]] + boxScoreTree.xpath(xPathStatsString)
                 
                 #print(playerStatsList)
 
-                if("DNP" not in playerStatsList[1] or "COACH'S DECISION" in playerStatsList[1]):
-       
+                if("DNP" not in playerStatsList[1] or "COACH'S DECISION" in playerStatsList[1]):         
+                    playerStatsList = playerStatsConvert(playerStatsList)
+                   # print(playerStatsList)
+                   # playerMap[playerid].append(gameid)
+                   # print(gameStatsList+playerStatsList)
+        
+                    playerMap[playerid][gameid]=(gameStatsList+playerStatsList)
+                    #playerMap[playerid] = OrderedDict({gameid:(gameStatsList+playerStatsList)})
+
+                else:
+                    print(playerid + " is injured, so stats from game will not count")
+
+
+
+            #gets player stats for away players and appends that to the game stats
+            for playerid in awayBenchidList:
+                xPathStatsString = "//tr[td/a/@href='http://espn.go.com/nba/player/_/id/" + playerid + "']/*/text()"
+                xPathPositionString = "//tr[td/a/@href='http://espn.go.com/nba/player/_/id/" + playerid + "']/td/*/text()"
+                #print(xPathPositionString)
+
+                gameStatsList = []
+                # stores own team's number and also the opposing team's number
+                # 0 for away team and then away score (own score) then home score (other score)
+                # then 0 for coming off the bench
+                gameStatsList += data_date_convert(game_time_info) + [awayTeamNum, homeTeamNum] + [0,int(awayScore),int(homeScore), overtime, 0]      
+ 
+                playerStatsList = [boxScoreTree.xpath(xPathPositionString)[1]] + boxScoreTree.xpath(xPathStatsString)
                 
+                #print(playerStatsList)
+
+                if("DNP" not in playerStatsList[1] or "COACH'S DECISION" in playerStatsList[1]):         
                     playerStatsList = playerStatsConvert(playerStatsList)
                    # print(playerStatsList)
                    # playerMap[playerid].append(gameid)
@@ -482,8 +536,11 @@ def createPlayerMap(gameids,currentMap):
                     print(playerid + " is injured, so stats from game will not count")
         
 
+
+
+
             #gets player stats for home players and appends that to the game stats
-            for playerid in homePlayeridList:
+            for playerid in homeStarteridList:
                 xPathStatsString = "//tr[td/a/@href='http://espn.go.com/nba/player/_/id/" + playerid + "']/*/text()"
                
 
@@ -494,11 +551,12 @@ def createPlayerMap(gameids,currentMap):
         
                 # stores own team's number and also the opposing team's number
                 # 1 for home team and score difference is calc away score - home score
-                gameStatsList += data_date_convert(game_time_info) + [homeTeamNum, awayTeamNum] + [1, -1 * scoreDifference]
+                #1 for starter
+                gameStatsList += data_date_convert(game_time_info) + [homeTeamNum, awayTeamNum] + [1, int(homeScore), int(awayScore), overtime, 1]
 
                 playerStatsList = [boxScoreTree.xpath(xPathPositionString)[1]] + boxScoreTree.xpath(xPathStatsString)
 
-                if("DNP" not in playerStatsList[1] or "DNP COACH'S DECISION" in playerStatsList[1]):
+                if("DNP" not in playerStatsList[1] or "COACH'S DECISION" in playerStatsList[1]):
 
                 
                     playerStatsList = playerStatsConvert(playerStatsList)
@@ -507,6 +565,40 @@ def createPlayerMap(gameids,currentMap):
 
                     playerMap[playerid][gameid]=(gameStatsList+playerStatsList)
                     #playerMap[playerid] = OrderedDict({gameid:(gameStatsList+playerStatsList)})
+                else:
+                    print(playerid + " is injured, so stats from game will not count")
+
+
+                    #gets player stats for home players and appends that to the game stats
+            for playerid in homeBenchidList:
+                xPathStatsString = "//tr[td/a/@href='http://espn.go.com/nba/player/_/id/" + playerid + "']/*/text()"
+               
+
+                xPathPositionString = "//tr[td/a/@href='http://espn.go.com/nba/player/_/id/" + playerid + "']/td/*/text()"
+                #print(xPathPositionString)
+
+                gameStatsList = []
+        
+                # stores own team's number and also the opposing team's number
+                # 1 for home team and score difference is calc away score - home score
+                # 0 for bench
+                gameStatsList += data_date_convert(game_time_info) + [homeTeamNum, awayTeamNum] + [1, int(homeScore), int(awayScore), overtime, 0]
+
+                playerStatsList = [boxScoreTree.xpath(xPathPositionString)[1]] + boxScoreTree.xpath(xPathStatsString)
+
+                if("DNP" not in playerStatsList[1] or "COACH'S DECISION" in playerStatsList[1]):
+
+                
+                    playerStatsList = playerStatsConvert(playerStatsList)
+                   # print(playerStatsList)
+                   # playerMap[playerid].append(gameid)
+
+                    playerMap[playerid][gameid]=(gameStatsList+playerStatsList)
+                    #playerMap[playerid] = OrderedDict({gameid:(gameStatsList+playerStatsList)})
+                else:
+                    print(playerid + " is injured, so stats from game will not count")
+
+
         except (IndexError):
             print("Game " + gameid + " does not exist")
     print(playerMap)
@@ -649,25 +741,25 @@ def writeFeaturesFiles(trainingFeatures,testingFeatures,todayFeatureList):
     with open('TodayFeatures.csv','w',newline='') as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(["playerid","gameid","month","day","year","time","ownTeam","otherTeam","away/home",
-                         "lastgame-scoreDiff","lastgame-position","lastgame-mins","lastgame-fgm","lastgame-fga",
+                         "lastgame-ownscore","lastgame-otherscore", "lastgame-ot", "lastgame-started","lastgame-position","lastgame-mins","lastgame-fgm","lastgame-fga",
                          "lastgame-3pm","lastgame-3pa","lastgame-ftm","lastgame-fta","lastgame-dreb","lastgame-oreb","lastgame-reb",
                          "lastgame-ast","lastgame-stl","lastgame-blk","lastgame-to","lastgame-pf","lastgame+/-","lastgame-pts",                     
-                        "last2games-scoreDiff","last2games-position","last2games-mins","last2games-fgm","last2games-fga","last2games-3pm",
+                         "last2games-ownscore","last2games-otherscore", "last2games-ot", "last2games-started","last2games-position","last2games-mins","last2games-fgm","last2games-fga","last2games-3pm",
                          "last2games-3pa","last2games-ftm","last2games-fta","last2games-dreb","last2games-oreb","last2games-reb",
                          "last2games-ast","last2games-stl","last2games-blk","last2games-to","last2games-pf","last2games+/-","last2games-pts",                     
-                         "last3games-scoreDiff","last3games-position","last3games-mins","last3games-fgm","last3games-fga","last3games-3pm",
+                         "last3games-ownscore","last3games-otherscore", "last3games-ot", "last3games-started","last3games-position","last3games-mins","last3games-fgm","last3games-fga","last3games-3pm",
                          "last3games-3pa","last3games-ftm","last3games-fta","last3games-dreb","last3games-oreb","last3games-reb",
                          "last3games-ast","last3games-stl","last3games-blk","last3games-to","last3games-pf","last3games+/-","last3games-pts",
-                         "last5games-scoreDiff","last5games-position","last5games-mins","last5games-fgm","last5games-fga","last5games-3pm",
+                         "last5games-ownscore","last5games-otherscore", "last5games-ot", "last5games-started","last5games-position","last5games-mins","last5games-fgm","last5games-fga","last5games-3pm",
                          "last5games-3pa","last5games-ftm","last5games-fta","last5games-dreb","last5games-oreb","last5games-reb",
                          "last5games-ast","last5games-stl","last5games-blk","last5games-to","last5games-pf","last5games+/-","last5games-pts",
-                         "last10games-scoreDiff","last10games-position","last10games-mins","last10games-fgm","last10games-fga","last10games-3pm",
+                         "last10games-ownscore","last10games-otherscore", "last10games-ot", "last10games-started","last10games-position","last10games-mins","last10games-fgm","last10games-fga","last10games-3pm",
                          "last10games-3pa","last10games-ftm","last10games-fta","last10games-dreb","last10games-oreb","last10games-reb",
                          "last10games-ast","last10games-stl","last10games-blk","last10games-to","last10games-pf","last10games+/-","last10games-pts",
-                         "last20games-scoreDiff","last20games-position","last20games-mins","last20games-fgm","last20games-fga","last20games-3pm",
+                         "last20games-ownscore","last20games-otherscore", "last20games-ot", "last20games-started","last20games-position","last20games-mins","last20games-fgm","last20games-fga","last20games-3pm",
                          "last20games-3pa","last20games-ftm","last20games-fta","last20games-dreb","last20games-oreb","last2games-reb",
                          "last20games-ast","last20games-stl","last20games-blk","last20games-to","last20games-pf","last20games+/-","last20games-pts",                     
-                         "season-scoreDiff","season-position","season-mins","season-fgm","season-fga","season-3pm","season-3pa",
+                         "season-ownscore","season-otherscore", "season-ot", "season-started","season-position","season-mins","season-fgm","season-fga","season-3pm","season-3pa",
                          "season-ftm","season-fta","season-dreb","season-oreb","season-reb",
                          "season-ast","season-stl","season-blk","season-to","season-pf","season+/-","season-pts"])
         writer.writerows(todayFeatureList)
@@ -675,25 +767,25 @@ def writeFeaturesFiles(trainingFeatures,testingFeatures,todayFeatureList):
     with open('TrainingFeatures.csv', 'w', newline='') as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(["playerid","gameid","month","day","year","time","ownTeam","otherTeam","away/home",
-                         "lastgame-scoreDiff","lastgame-position","lastgame-mins","lastgame-fgm","lastgame-fga",
+                         "lastgame-ownscore","lastgame-otherscore", "lastgame-ot", "lastgame-started","lastgame-position","lastgame-mins","lastgame-fgm","lastgame-fga",
                          "lastgame-3pm","lastgame-3pa","lastgame-ftm","lastgame-fta","lastgame-dreb","lastgame-oreb","lastgame-reb",
-                         "lastgame-ast","lastgame-stl","lastgame-blk","lastgame-to","lastgame-pf","lastgame+/-","lastgame-pts",                    
-                         "last2games-scoreDiff","last2games-position","last2games-mins","last2games-fgm","last2games-fga","last2games-3pm",
+                         "lastgame-ast","lastgame-stl","lastgame-blk","lastgame-to","lastgame-pf","lastgame+/-","lastgame-pts",                     
+                         "last2games-ownscore","last2games-otherscore", "last2games-ot", "last2games-started","last2games-position","last2games-mins","last2games-fgm","last2games-fga","last2games-3pm",
                          "last2games-3pa","last2games-ftm","last2games-fta","last2games-dreb","last2games-oreb","last2games-reb",
-                         "last2games-ast","last2games-stl","last2games-blk","last2games-to","last2games-pf","last2games+/-","last2games-pts",                   
-                         "last3games-scoreDiff","last3games-position","last3games-mins","last3games-fgm","last3games-fga","last3games-3pm",
+                         "last2games-ast","last2games-stl","last2games-blk","last2games-to","last2games-pf","last2games+/-","last2games-pts",                     
+                         "last3games-ownscore","last3games-otherscore", "last3games-ot", "last3games-started","last3games-position","last3games-mins","last3games-fgm","last3games-fga","last3games-3pm",
                          "last3games-3pa","last3games-ftm","last3games-fta","last3games-dreb","last3games-oreb","last3games-reb",
                          "last3games-ast","last3games-stl","last3games-blk","last3games-to","last3games-pf","last3games+/-","last3games-pts",
-                         "last5games-scoreDiff","last5games-position","last5games-mins","last5games-fgm","last5games-fga","last5games-3pm",
+                         "last5games-ownscore","last5games-otherscore", "last5games-ot", "last5games-started","last5games-position","last5games-mins","last5games-fgm","last5games-fga","last5games-3pm",
                          "last5games-3pa","last5games-ftm","last5games-fta","last5games-dreb","last5games-oreb","last5games-reb",
                          "last5games-ast","last5games-stl","last5games-blk","last5games-to","last5games-pf","last5games+/-","last5games-pts",
-                         "last10games-scoreDiff","last10games-position","last10games-mins","last10games-fgm","last10games-fga","last10games-3pm",
+                         "last10games-ownscore","last10games-otherscore", "last10games-ot", "last10games-started","last10games-position","last10games-mins","last10games-fgm","last10games-fga","last10games-3pm",
                          "last10games-3pa","last10games-ftm","last10games-fta","last10games-dreb","last10games-oreb","last10games-reb",
                          "last10games-ast","last10games-stl","last10games-blk","last10games-to","last10games-pf","last10games+/-","last10games-pts",
-                         "last20games-scoreDiff","last20games-position","last20games-mins","last20games-fgm","last20games-fga","last20games-3pm",
+                         "last20games-ownscore","last20games-otherscore", "last20games-ot", "last20games-started","last20games-position","last20games-mins","last20games-fgm","last20games-fga","last20games-3pm",
                          "last20games-3pa","last20games-ftm","last20games-fta","last20games-dreb","last20games-oreb","last2games-reb",
-                         "last20games-ast","last20games-stl","last20games-blk","last20games-to","last20games-pf","last20games+/-","last20games-pts",                    
-                         "season-scoreDiff","season-position","season-mins","season-fgm","season-fga","season-3pm","season-3pa",
+                         "last20games-ast","last20games-stl","last20games-blk","last20games-to","last20games-pf","last20games+/-","last20games-pts",                     
+                         "season-ownscore","season-otherscore", "season-ot", "season-started","season-position","season-mins","season-fgm","season-fga","season-3pm","season-3pa",
                          "season-ftm","season-fta","season-dreb","season-oreb","season-reb",
                          "season-ast","season-stl","season-blk","season-to","season-pf","season+/-","season-pts"])
         writer.writerows(trainingFeatures)
@@ -701,25 +793,25 @@ def writeFeaturesFiles(trainingFeatures,testingFeatures,todayFeatureList):
     with open('TestingFeatures.csv', 'w', newline='') as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(["playerid","gameid","month","day","year","time","ownTeam","otherTeam","away/home",
-                         "lastgame-scoreDiff","lastgame-position","lastgame-mins","lastgame-fgm","lastgame-fga",
+                         "lastgame-ownscore","lastgame-otherscore", "lastgame-ot", "lastgame-started","lastgame-position","lastgame-mins","lastgame-fgm","lastgame-fga",
                          "lastgame-3pm","lastgame-3pa","lastgame-ftm","lastgame-fta","lastgame-dreb","lastgame-oreb","lastgame-reb",
                          "lastgame-ast","lastgame-stl","lastgame-blk","lastgame-to","lastgame-pf","lastgame+/-","lastgame-pts",                     
-                        "last2games-scoreDiff","last2games-position","last2games-mins","last2games-fgm","last2games-fga","last2games-3pm",
+                         "last2games-ownscore","last2games-otherscore", "last2games-ot", "last2games-started","last2games-position","last2games-mins","last2games-fgm","last2games-fga","last2games-3pm",
                          "last2games-3pa","last2games-ftm","last2games-fta","last2games-dreb","last2games-oreb","last2games-reb",
                          "last2games-ast","last2games-stl","last2games-blk","last2games-to","last2games-pf","last2games+/-","last2games-pts",                     
-                         "last3games-scoreDiff","last3games-position","last3games-mins","last3games-fgm","last3games-fga","last3games-3pm",
+                         "last3games-ownscore","last3games-otherscore", "last3games-ot", "last3games-started","last3games-position","last3games-mins","last3games-fgm","last3games-fga","last3games-3pm",
                          "last3games-3pa","last3games-ftm","last3games-fta","last3games-dreb","last3games-oreb","last3games-reb",
                          "last3games-ast","last3games-stl","last3games-blk","last3games-to","last3games-pf","last3games+/-","last3games-pts",
-                         "last5games-scoreDiff","last5games-position","last5games-mins","last5games-fgm","last5games-fga","last5games-3pm",
+                         "last5games-ownscore","last5games-otherscore", "last5games-ot", "last5games-started","last5games-position","last5games-mins","last5games-fgm","last5games-fga","last5games-3pm",
                          "last5games-3pa","last5games-ftm","last5games-fta","last5games-dreb","last5games-oreb","last5games-reb",
                          "last5games-ast","last5games-stl","last5games-blk","last5games-to","last5games-pf","last5games+/-","last5games-pts",
-                         "last10games-scoreDiff","last10games-position","last10games-mins","last10games-fgm","last10games-fga","last10games-3pm",
+                         "last10games-ownscore","last10games-otherscore", "last10games-ot", "last10games-started","last10games-position","last10games-mins","last10games-fgm","last10games-fga","last10games-3pm",
                          "last10games-3pa","last10games-ftm","last10games-fta","last10games-dreb","last10games-oreb","last10games-reb",
                          "last10games-ast","last10games-stl","last10games-blk","last10games-to","last10games-pf","last10games+/-","last10games-pts",
-                         "last20games-scoreDiff","last20games-position","last20games-mins","last20games-fgm","last20games-fga","last20games-3pm",
+                         "last20games-ownscore","last20games-otherscore", "last20games-ot", "last20games-started","last20games-position","last20games-mins","last20games-fgm","last20games-fga","last20games-3pm",
                          "last20games-3pa","last20games-ftm","last20games-fta","last20games-dreb","last20games-oreb","last2games-reb",
                          "last20games-ast","last20games-stl","last20games-blk","last20games-to","last20games-pf","last20games+/-","last20games-pts",                     
-                         "season-scoreDiff","season-position","season-mins","season-fgm","season-fga","season-3pm","season-3pa",
+                         "season-ownscore","season-otherscore", "season-ot", "season-started","season-position","season-mins","season-fgm","season-fga","season-3pm","season-3pa",
                          "season-ftm","season-fta","season-dreb","season-oreb","season-reb",
                          "season-ast","season-stl","season-blk","season-to","season-pf","season+/-","season-pts"])
         writer.writerows(testingFeatures)
@@ -736,7 +828,7 @@ def generate_labels(statsMap):
 
          for gameid,statList in orderedDict.items():
              if(count != 0):
-                 gameLabels = statList[9:] 
+                 gameLabels = statList[12:] 
                  if(count <= 0.8 * (gamesForPlayer-1)):
                      trainingLabelsList.append(gameLabels)
                  else:
@@ -817,7 +909,25 @@ def create_preds(trainingFeatures_arr,trainingLabels_arr,testingFeatures_arr,tes
     #print(trainingLabels_arr.shape)
     #print(trainingLabels_arr)
 
-    
+    regr = DecisionTreeRegressor(max_depth=9)
+    regr.fit(trainingFeatures_arr,trainingLabels_arr)
+    print("r2_score 9: %f" % r2_score(testingLabels_arr,regr.predict(testingFeatures_arr),multioutput='uniform_average'))
+
+    regr = DecisionTreeRegressor(max_depth=4)
+    regr.fit(trainingFeatures_arr,trainingLabels_arr)
+    print("r2_score 4: %f" % r2_score(testingLabels_arr,regr.predict(testingFeatures_arr),multioutput='uniform_average'))
+
+    regr = DecisionTreeRegressor(max_depth=5)
+    regr.fit(trainingFeatures_arr,trainingLabels_arr)
+    print("r2_score 5: %f" % r2_score(testingLabels_arr,regr.predict(testingFeatures_arr),multioutput='uniform_average'))
+
+    regr = DecisionTreeRegressor(max_depth=8)
+    regr.fit(trainingFeatures_arr,trainingLabels_arr)
+    print("r2_score 8: %f" % r2_score(testingLabels_arr,regr.predict(testingFeatures_arr),multioutput='uniform_average'))
+
+    regr = DecisionTreeRegressor(max_depth=7)
+    regr.fit(trainingFeatures_arr,trainingLabels_arr)
+    print("r2_score 7: %f" % r2_score(testingLabels_arr,regr.predict(testingFeatures_arr),multioutput='uniform_average'))    
 
     regr = DecisionTreeRegressor(max_depth=6)
     regr.fit(trainingFeatures_arr,trainingLabels_arr)
@@ -1011,7 +1121,7 @@ def create_preds(trainingFeatures_arr,trainingLabels_arr,testingFeatures_arr,tes
         regr1.fit(testingFeatures_arr,testingLabels_arr[:,9])
         rebPreds = regr1.predict(todayFeatures_arr)
     else:
-        print("EN r2_score oreb: %f" % r2score2)
+        print("EN r2_score reb: %f" % r2score2)
         regr2.fit(testingFeatures_arr,testingLabels_arr[:,9])
         rebPreds = regr2.predict(todayFeatures_arr)
     #print(rebPreds)
@@ -1271,7 +1381,7 @@ def create_preds(trainingFeatures_arr,trainingLabels_arr,testingFeatures_arr,tes
     return preds
 
 
-def write_preds(preds):
+def write_all_today_preds(preds):
     with open("PredictedToday.csv","w",newline='') as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(["mins","fgm","fga","3pm","3pa","ftm","fta","dreb","oreb","reb",
@@ -1345,6 +1455,7 @@ def playerid_to_playerName(playerid):
 
 
         playerIDDict[playerid] = playerName
+        playerIDDict[playerName] = playerid
         return playerName
         
 def writePlayerIDDict(dict):
@@ -1353,7 +1464,8 @@ def writePlayerIDDict(dict):
     f.close()
 
 def calc_fanduel_points(statList):
-    return (statList[1] - statList[3]) * 2 + statList[3] * 3 + statList[5] * 1 + statList[9] * 1.2 + statList[10] * 1.5 + statList[11] * 2 + statList[12] * 2 + statList[13] * -1
+    #return (statList[1] - statList[3]) * 2 + statList[3] * 3 + statList[5] * 1 + statList[9] * 1.2 + statList[10] * 1.5 + statList[11] * 2 + statList[12] * 2 + statList[13] * -1
+    return statList[16] + statList[9] * 1.2 + statList[10] * 1.5 + statList[11] * 2 + statList[12] * 2 + statList[13] * -1
 
 def gen_description_and_fanduel_map(dict,csvFileName):
     playerList = []
@@ -1619,9 +1731,35 @@ def readPlayerList():
 
 
 
+def check_yesterday_fanduel(playerMap):
+    yesterdayDate = datetime.date.today()-datetime.timedelta(days=1)
+    with open("final_preds.txt","r") as f:
+        resultList = json.loads(f.readline())
+        for i in range(0,len(resultList[0])):
+            name = resultList[3][i]
+            points = resultList[1][i]
+            position = resultList[0][i]
+            cost= resultList[2][i]
 
+            #print(name)
+            playeridStr = str(playerIDDict[name])
+            #print(playeridStr)
+           # print(type(playeridStr))
 
+            gameOrderedDict = playerMap[playeridStr]
 
+            lastGameStats = gameOrderedDict[next(reversed(gameOrderedDict))]
+
+            #print(lastGameStats)
+
+            if(lastGameStats[0] != yesterdayDate.month or lastGameStats[1] != yesterdayDate.day or lastGameStats[2] != yesterdayDate.year):
+                print(name + " might have been injured or did not play")
+                print(name + " (" + position + ") was projected for " + str(points) + " points at " + str(cost) + " cost and actually got " + str(0))
+            else:
+                statsList = lastGameStats[12:]
+                print(statsList)
+                actual_fanduel = calc_fanduel_points(statsList)
+                print(name + " (" + position + ") was projected for " + str(points) + " points at " + str(cost) + " cost and actually got " + str(actual_fanduel))
 
 
 
@@ -1652,6 +1790,28 @@ def format_print(resultList):
     print("Total cost is " + str(resultList[5]))
 
 
+def write_final_preds(resultList):
+    with open("final_preds.txt","w") as f:
+        f.write(json.dumps(resultList))
+        f.write("\n")
+        f.write(resultList[0][0] + "1: " + resultList[3][0] + " with projected " + "{0:.2f}".format(resultList[1][0]) + " points and " + str(resultList[2][0]) + " cost.\n")
+        f.write(resultList[0][1] + "2: " + resultList[3][1] + " with projected " + "{0:.2f}".format(resultList[1][1]) + " points and " + str(resultList[2][1]) + " cost.\n")
+        f.write(resultList[0][2] + "1: " + resultList[3][2] + " with projected " + "{0:.2f}".format(resultList[1][2]) + " points and " + str(resultList[2][2]) + " cost.\n")
+        f.write(resultList[0][3] + "2: " + resultList[3][3] + " with projected " + "{0:.2f}".format(resultList[1][3]) + " points and " + str(resultList[2][3]) + " cost.\n")
+        f.write(resultList[0][4] + "1: " + resultList[3][4] + " with projected " + "{0:.2f}".format(resultList[1][4]) + " points and " + str(resultList[2][4]) + " cost.\n")
+        f.write(resultList[0][5] + "2: " + resultList[3][5] + " with projected " + "{0:.2f}".format(resultList[1][5]) + " points and " + str(resultList[2][5]) + " cost.\n")
+        f.write(resultList[0][6] + "1: " + resultList[3][6] + " with projected " + "{0:.2f}".format(resultList[1][6]) + " points and " + str(resultList[2][6]) + " cost.\n")
+        f.write(resultList[0][7] + "2: " + resultList[3][7] + " with projected " + "{0:.2f}".format(resultList[1][7]) + " points and " + str(resultList[2][7]) + " cost.\n")
+        f.write(resultList[0][8] + ": " + resultList[3][8] + " with projected " + "{0:.2f}".format(resultList[1][8]) + " points and " + str(resultList[2][8]) + " cost.\n")
+        f.write("Total projected points is " + "{0:.2f}".format(resultList[4]) + "\n")
+        f.write("Total cost is " + str(resultList[5]))
+
+
+
+
+
+
+
 
 
 print("Reading previously stored player-stats map")
@@ -1662,20 +1822,36 @@ print("Getting data about players playing today")
 today_playerMap = create_todays_playerMap()
 
 if(not isUpdated):
+    print("Creating Player Map")
     gameids = getNewGameIDs()
+    #print(gameids)
     currentMap = createPlayerMap(gameids,currentMap)
-    writePlayerStats(currentMap)
+    
     print("Done creating and writing Player Map")
+
+
+
+
 else:
     print("PlayerMap is already updated, so not creating new PlayerMap")
 
 
+
+print("------------------------------------------------------------------------------------------------------------------")
+checkFanduel = str(input("Would you like to check yesterday's prediction results? (Y/N)\n"))
+if(checkFanduel.lower() == "y" or checkFanduel.lower() == "yes"):
+    print("Checking yesterday's results")
+    check_yesterday_fanduel(currentMap)
+
+
+
 if(not isUpdated):
+    print("Generating features/labels")
     (trainingFeatures_arr,testingFeatures_arr,todayFeatures_arr) = generate_features(currentMap,today_playerMap)
-    writeFeaturesFiles(trainingFeatures_arr,testingFeatures_arr,todayFeatures_arr)
+    
 
     (trainingLabels_arr,testingLabels_arr) = generate_labels(currentMap)
-    writeLabelsCSVFiles(trainingLabels_arr,testingLabels_arr)
+    
 
     print("Done generating features and labels")
 else:
@@ -1687,8 +1863,9 @@ else:
 today_playerIDS = extract_playerIDS(todayFeatures_arr)
 
 if(not isUpdated):
+    print("Creating predictions")
     preds = create_preds(trainingFeatures_arr,trainingLabels_arr,testingFeatures_arr,testingLabels_arr,todayFeatures_arr)
-    write_preds(preds)
+    
     print("Done making predictions about players playing today")
 else:
     preds = readPredsFile()
@@ -1722,10 +1899,13 @@ result = optimize(playerList,totalSalary)
 
 format_print(result)
 
-
-
-
-
+if(not isUpdated):
+    writePlayerStats(currentMap)
+    writeFeaturesFiles(trainingFeatures_arr,testingFeatures_arr,todayFeatures_arr)
+    writeLabelsCSVFiles(trainingLabels_arr,testingLabels_arr)
+    write_all_today_preds(preds)
+#final_preds could be different if player list from fanduel is updated
+write_final_preds(result)
 
 #IDK IF I AM GOING TO KEEP WORKING ON SCRAPING FANDUEL
 #IT SEEMS DIFFICULT / AGAINST THE TERMS OF SERVICE
@@ -1735,4 +1915,4 @@ format_print(result)
 
 #(trainingFeatures_arr,trainingLabels_arr,todayFeatures_arr,testingFeatures_arr,testingLabels_arr) = readCSVFiles()
 #preds = create_preds(trainingFeatures_arr,trainingLabels_arr,testingFeatures_arr,testingLabels_arr,todayFeatures_arr)
-#write_preds(preds)
+#write_all_today_preds(preds)
