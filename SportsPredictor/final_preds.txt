@@ -1,12 +1,12 @@
-[["PG", "PG", "SG", "SG", "SF", "SF", "PF", "PF", "C"], [27.420544815988467, 29.09272375515428, 38.91992673243692, 17.635360175063255, 35.972508137993565, 47.58747320445873, 30.900700689276782, 48.662962774737814, 26.279076696510366], [4900, 5400, 7300, 3900, 8000, 10600, 5900, 8600, 5300], ["Norris Cole", "Darren Collison", "Klay Thompson", "Dion Waiters", "Kawhi Leonard", "Kevin Durant", "Serge Ibaka", "Draymond Green", "Alex Len"], 302.4712769816201, 59900]
-PG1: Norris Cole with projected 27.42 points and 4900 cost.
-PG2: Darren Collison with projected 29.09 points and 5400 cost.
-SG1: Klay Thompson with projected 38.92 points and 7300 cost.
-SG2: Dion Waiters with projected 17.64 points and 3900 cost.
-SF1: Kawhi Leonard with projected 35.97 points and 8000 cost.
-SF2: Kevin Durant with projected 47.59 points and 10600 cost.
-PF1: Serge Ibaka with projected 30.90 points and 5900 cost.
-PF2: Draymond Green with projected 48.66 points and 8600 cost.
-C: Alex Len with projected 26.28 points and 5300 cost.
-Total projected points is 302.47
-Total cost is 59900
+[["PG", "PG", "SG", "SG", "SF", "SF", "PF", "PF", "C"], [28.443023064687775, 29.018158157378874, 35.222564433472876, 21.80134730428324, 35.698304987099085, 50.75083270148118, 29.996165585688644, 42.58239772239564, 26.15919990332559], [4900, 5400, 7300, 4500, 8000, 10600, 5900, 8600, 4800], ["Norris Cole", "Darren Collison", "Klay Thompson", "Wesley Matthews", "Kawhi Leonard", "Kevin Durant", "Serge Ibaka", "Draymond Green", "Andrew Bogut"], 299.6719938598129, 60000]
+PG1: Norris Cole with projected 28.44 points and 4900 cost.
+PG2: Darren Collison with projected 29.02 points and 5400 cost.
+SG1: Klay Thompson with projected 35.22 points and 7300 cost.
+SG2: Wesley Matthews with projected 21.80 points and 4500 cost.
+SF1: Kawhi Leonard with projected 35.70 points and 8000 cost.
+SF2: Kevin Durant with projected 50.75 points and 10600 cost.
+PF1: Serge Ibaka with projected 30.00 points and 5900 cost.
+PF2: Draymond Green with projected 42.58 points and 8600 cost.
+C: Andrew Bogut with projected 26.16 points and 4800 cost.
+Total projected points is 299.67
+Total cost is 60000

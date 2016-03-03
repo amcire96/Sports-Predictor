@@ -210,7 +210,7 @@ def readPlayerStatsFile():
         #mydict = lambda: defaultdict(mydict)
         #currentMap = mydict()
         currentMap = json.loads(f.readline(),object_pairs_hook=OrderedDict)
-        #print(currentMap)
+        print(currentMap)
 
     f.close()
     return (lastModifiedDate,currentMap)
@@ -324,7 +324,7 @@ def extractNewGameIDs(gameidsList,dateList):
             break
     #print(str(i))
     if(lastModifiedDate > strToDate(dateList[i])):
-        return []
+        return ([],[])
     #eprint(dateList[i:])
     return (gameidsList[i:],[strToDate(x) for x in dateList[i:]])
 
@@ -639,7 +639,7 @@ def writePlayerStats(currentMap):
     #write default dict into file -- default dict in json format
     f = open("PlayerStats.txt","w")
     f.write("Last Modified: " + todayStr + "\n")
-    f.write(json.dumps(currentMap,sort_keys=True))
+    f.write(json.dumps(currentMap))
     f.close()
 
 #print("hello5")
