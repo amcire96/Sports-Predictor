@@ -326,7 +326,7 @@ def extractNewGameIDs(gameidsList,dateList):
     if(lastModifiedDate > strToDate(dateList[i])):
         return []
     #eprint(dateList[i:])
-    return gameidsList[i:]
+    return (gameidsList[i:],[strToDate(x) for x in dateList[i:]])
 
 
 
@@ -346,9 +346,9 @@ def getNewGameIDs():
         teamGameidList = [x.split("=")[1] for x in scheduleTree.xpath("//li[@class='score']/a/@href")]
         gameDateList = scheduleTree.xpath("//tr[td/ul/li/@class='score']/td[position() = 1]/text()")
 
-        newGameIDs = extractNewGameIDs(teamGameidList,gameDateList)
+        (newGameIDs,newGameIDDates) = extractNewGameIDs(teamGameidList,gameDateList)
         #print(newGameIDs)
-        gameids |= set(newGameIDs)
+        gameids |= set([(newGameIDs[i],newGameIDDates[i]) for i in range(0,len(newGameIDs))])
     return gameids
 
 
@@ -399,9 +399,11 @@ def createPlayerMap(gameids,currentMap):
     playerMap = defaultdict(OrderedDict)
     #playerMap = OrderedDict()
 
+    print(sorted(gameids,key=lambda x: x[1]))
     
-    for gameid in sorted(gameids):
-       # print(gameid)
+    for gameid in sorted(gameids,key=lambda x: x[1]):
+        gameid = gameid[0]
+        #print(gameid)
         gameBoxScoreURL = "http://espn.go.com/nba/boxscore?gameId=" + gameid
         boxScorePage = requests.get(gameBoxScoreURL)
         boxScoreTree = html.fromstring(boxScorePage.content)
@@ -493,7 +495,7 @@ def createPlayerMap(gameids,currentMap):
                 
                 #print(playerStatsList)
 
-                if("DNP" not in playerStatsList[1] or "COACH'S DECISION" in playerStatsList[1]):         
+                if("DNP" not in playerStatsList[1] or "COACH'S DECISION" in playerStatsList[1] or len(playerStatsList) != 2):         
                     playerStatsList = playerStatsConvert(playerStatsList)
                    # print(playerStatsList)
                    # playerMap[playerid].append(gameid)
@@ -601,6 +603,7 @@ def createPlayerMap(gameids,currentMap):
 
         except (IndexError):
             print("Game " + gameid + " does not exist")
+            #raise IndexError
     print(playerMap)
 
     #need to UNION currentMap(defaultdict in file) and playerMap(recent games)
@@ -1748,9 +1751,11 @@ def check_yesterday_fanduel(playerMap):
 
             gameOrderedDict = playerMap[playeridStr]
 
+
+            print(next(reversed(gameOrderedDict)))
             lastGameStats = gameOrderedDict[next(reversed(gameOrderedDict))]
 
-            #print(lastGameStats)
+            print(lastGameStats)
 
             if(lastGameStats[0] != yesterdayDate.month or lastGameStats[1] != yesterdayDate.day or lastGameStats[2] != yesterdayDate.year):
                 print(name + " might have been injured or did not play")

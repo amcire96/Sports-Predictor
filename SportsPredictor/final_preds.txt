@@ -1,10 +1,12 @@
-[["PG", "PG", "SG", "SG", "SF", "SF", "PF", "PF", "C"], [63.9244579806369, 31.314899891849453, 30.118147384344297, 17.550377712452274, 27.21934787841306, 32.94445253415541, 28.060219068253218, 28.692396379908917, 60.797767256255135], [9800, 5700, 6100, 3500, 5000, 7000, 5600, 6200, 10900], ["John Wall", "Michael Carter-Williams", "Monta Ellis", "Iman Shumpert", "Robert Covington", "Rudy Gay", "Jabari Parker", "Jared Sullinger", "DeMarcus Cousins"], 320.62206608626866, 59800]
-PG1: John Wall with projected 63.92 points and 9800 cost.
-PG2: Michael Carter-Williams with projected 31.31 points and 5700 cost.
-SG1: Monta Ellis with projected 30.12 points and 6100 cost.
-SG2: Iman Shumpert with projected 17.55 points and 3500 cost.
-SF1: Robert Covington with projected 27.22 points and 5000 cost.
-SF2: Rudy Gay with projected 32.94 points and 7000 cost.
-PF1: Jabari Parker with projected 28.06 points and 5600 cost.
-PF2: Jared Sullinger with projected 28.69 points and 6200 cost.
-C: DeMarcus Cousins with projected 60.80 points and 10900 cost.Total projected points is 320.62Total cost is 59800
+[["PG", "PG", "SG", "SG", "SF", "SF", "PF", "PF", "C"], [27.420544815988467, 29.09272375515428, 38.91992673243692, 17.635360175063255, 35.972508137993565, 47.58747320445873, 30.900700689276782, 48.662962774737814, 26.279076696510366], [4900, 5400, 7300, 3900, 8000, 10600, 5900, 8600, 5300], ["Norris Cole", "Darren Collison", "Klay Thompson", "Dion Waiters", "Kawhi Leonard", "Kevin Durant", "Serge Ibaka", "Draymond Green", "Alex Len"], 302.4712769816201, 59900]
+PG1: Norris Cole with projected 27.42 points and 4900 cost.
+PG2: Darren Collison with projected 29.09 points and 5400 cost.
+SG1: Klay Thompson with projected 38.92 points and 7300 cost.
+SG2: Dion Waiters with projected 17.64 points and 3900 cost.
+SF1: Kawhi Leonard with projected 35.97 points and 8000 cost.
+SF2: Kevin Durant with projected 47.59 points and 10600 cost.
+PF1: Serge Ibaka with projected 30.90 points and 5900 cost.
+PF2: Draymond Green with projected 48.66 points and 8600 cost.
+C: Alex Len with projected 26.28 points and 5300 cost.
+Total projected points is 302.47
+Total cost is 59900
