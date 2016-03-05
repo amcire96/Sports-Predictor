@@ -210,7 +210,7 @@ def readPlayerStatsFile():
         #mydict = lambda: defaultdict(mydict)
         #currentMap = mydict()
         currentMap = json.loads(f.readline(),object_pairs_hook=OrderedDict)
-        print(currentMap)
+        #print(currentMap)
 
     f.close()
     return (lastModifiedDate,currentMap)
@@ -1472,6 +1472,7 @@ def calc_fanduel_points(statList):
 
 def gen_description_and_fanduel_map(dict,csvFileName):
     playerList = []
+    pred_statList = {}
 
     f = open("final.txt","w")
     fanduel_data_arr = fanduel_scrape(csvFileName)
@@ -1488,6 +1489,8 @@ def gen_description_and_fanduel_map(dict,csvFileName):
             injured = row[10]
 
             predicted = calc_fanduel_points(statList)
+
+            pred_statList[name] = statList
             
             
             #print(row)
@@ -1503,9 +1506,11 @@ def gen_description_and_fanduel_map(dict,csvFileName):
                 playerList.append([position, predicted, cost,name])
 
     f.close()
+
+    with open("final_predList.txt","w") as f:
+        f.write(json.dumps(pred_statList))
+
     writePlayerIDDict(playerIDDict)
-
-
 
     return playerList
 
@@ -1738,6 +1743,10 @@ def check_yesterday_fanduel(playerMap):
     yesterdayDate = datetime.date.today()-datetime.timedelta(days=1)
     with open("final_preds.txt","r") as f:
         resultList = json.loads(f.readline())
+    with open("final_predList.txt","r") as f:
+        predList = json.loads(f.readline())
+    with open("yesterday_results.txt","w") as f:
+
         for i in range(0,len(resultList[0])):
             name = resultList[3][i]
             points = resultList[1][i]
@@ -1752,19 +1761,21 @@ def check_yesterday_fanduel(playerMap):
             gameOrderedDict = playerMap[playeridStr]
 
 
-            print(next(reversed(gameOrderedDict)))
             lastGameStats = gameOrderedDict[next(reversed(gameOrderedDict))]
 
-            print(lastGameStats)
+            predictedStatsList = predList[name]
+            
 
             if(lastGameStats[0] != yesterdayDate.month or lastGameStats[1] != yesterdayDate.day or lastGameStats[2] != yesterdayDate.year):
-                print(name + " might have been injured or did not play")
-                print(name + " (" + position + ") was projected for " + str(points) + " points at " + str(cost) + " cost and actually got " + str(0))
+                f.write(name + " might have been injured or did not play\n")
+                f.write(name + " (" + position + ") was projected for " + str(points) + " points at " + str(cost) + " cost and actually got " + str(0) + "\n")
             else:
+                j.write(json.dumps(predictedStatsList)+"\n")
                 statsList = lastGameStats[12:]
-                print(statsList)
+                f.write(json.dumps(statsList)+"\n")
                 actual_fanduel = calc_fanduel_points(statsList)
-                print(name + " (" + position + ") was projected for " + str(points) + " points at " + str(cost) + " cost and actually got " + str(actual_fanduel))
+                f.write(name + " (" + position + ") was projected for " + str(points) + " points at " + str(cost) + " cost and actually got " + str(actual_fanduel) + "\n")
+            f.write("\n")
 
 
 
@@ -1847,7 +1858,7 @@ checkFanduel = str(input("Would you like to check yesterday's prediction results
 if(checkFanduel.lower() == "y" or checkFanduel.lower() == "yes"):
     print("Checking yesterday's results")
     check_yesterday_fanduel(currentMap)
-
+    print("Done checking. Wrote results to 'yesterday_results.txt'")
 
 
 if(not isUpdated):
@@ -1904,6 +1915,7 @@ result = optimize(playerList,totalSalary)
 
 format_print(result)
 
+print("writing files to update information")
 if(not isUpdated):
     writePlayerStats(currentMap)
     writeFeaturesFiles(trainingFeatures_arr,testingFeatures_arr,todayFeatures_arr)

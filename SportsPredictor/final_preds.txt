@@ -1,12 +1,12 @@
-[["PG", "PG", "SG", "SG", "SF", "SF", "PF", "PF", "C"], [28.443023064687775, 29.018158157378874, 35.222564433472876, 21.80134730428324, 35.698304987099085, 50.75083270148118, 29.996165585688644, 42.58239772239564, 26.15919990332559], [4900, 5400, 7300, 4500, 8000, 10600, 5900, 8600, 4800], ["Norris Cole", "Darren Collison", "Klay Thompson", "Wesley Matthews", "Kawhi Leonard", "Kevin Durant", "Serge Ibaka", "Draymond Green", "Andrew Bogut"], 299.6719938598129, 60000]
-PG1: Norris Cole with projected 28.44 points and 4900 cost.
-PG2: Darren Collison with projected 29.02 points and 5400 cost.
-SG1: Klay Thompson with projected 35.22 points and 7300 cost.
-SG2: Wesley Matthews with projected 21.80 points and 4500 cost.
-SF1: Kawhi Leonard with projected 35.70 points and 8000 cost.
-SF2: Kevin Durant with projected 50.75 points and 10600 cost.
-PF1: Serge Ibaka with projected 30.00 points and 5900 cost.
-PF2: Draymond Green with projected 42.58 points and 8600 cost.
-C: Andrew Bogut with projected 26.16 points and 4800 cost.
-Total projected points is 299.67
-Total cost is 60000
+[["PG", "PG", "SG", "SG", "SF", "SF", "PF", "PF", "C"], [38.89472417725099, 29.07936594054, 25.300791795244393, 34.6500326272544, 40.315834767657684, 40.55180734606035, 33.79486220517285, 28.85424910084971, 29.433579047098565], [8500, 6000, 4700, 7500, 7400, 8300, 7100, 5900, 4300], ["Kemba Walker", "D'Angelo Russell", "Devin Booker", "Dwyane Wade", "Gordon Hayward", "Giannis Antetokounmpo", "Thaddeus Young", "Jabari Parker", "Jordan Hill"], 300.87524700712896, 59700]
+PG1: Kemba Walker with projected 38.89 points and 8500 cost.
+PG2: D'Angelo Russell with projected 29.08 points and 6000 cost.
+SG1: Devin Booker with projected 25.30 points and 4700 cost.
+SG2: Dwyane Wade with projected 34.65 points and 7500 cost.
+SF1: Gordon Hayward with projected 40.32 points and 7400 cost.
+SF2: Giannis Antetokounmpo with projected 40.55 points and 8300 cost.
+PF1: Thaddeus Young with projected 33.79 points and 7100 cost.
+PF2: Jabari Parker with projected 28.85 points and 5900 cost.
+C: Jordan Hill with projected 29.43 points and 4300 cost.
+Total projected points is 300.88
+Total cost is 59700
