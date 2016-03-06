@@ -1,12 +1,12 @@
-[["PG", "PG", "SG", "SG", "SF", "SF", "PF", "PF", "C"], [38.89472417725099, 29.07936594054, 25.300791795244393, 34.6500326272544, 40.315834767657684, 40.55180734606035, 33.79486220517285, 28.85424910084971, 29.433579047098565], [8500, 6000, 4700, 7500, 7400, 8300, 7100, 5900, 4300], ["Kemba Walker", "D'Angelo Russell", "Devin Booker", "Dwyane Wade", "Gordon Hayward", "Giannis Antetokounmpo", "Thaddeus Young", "Jabari Parker", "Jordan Hill"], 300.87524700712896, 59700]
-PG1: Kemba Walker with projected 38.89 points and 8500 cost.
-PG2: D'Angelo Russell with projected 29.08 points and 6000 cost.
-SG1: Devin Booker with projected 25.30 points and 4700 cost.
-SG2: Dwyane Wade with projected 34.65 points and 7500 cost.
-SF1: Gordon Hayward with projected 40.32 points and 7400 cost.
-SF2: Giannis Antetokounmpo with projected 40.55 points and 8300 cost.
-PF1: Thaddeus Young with projected 33.79 points and 7100 cost.
-PF2: Jabari Parker with projected 28.85 points and 5900 cost.
-C: Jordan Hill with projected 29.43 points and 4300 cost.
-Total projected points is 300.88
-Total cost is 59700
+[["PG", "PG", "SG", "SG", "SF", "SF", "PF", "PF", "C"], [27.763287246386973, 47.09682927425445, 28.177507305495805, 48.07158266402894, 29.69172029044654, 23.155152431556026, 28.915227832961634, 31.330208381307994, 29.171402574533456], [5000, 10700, 5000, 10900, 5400, 4500, 6000, 6700, 5800], ["Mario Chalmers", "Russell Westbrook", "Kentavious Caldwell-Pope", "James Harden", "Robert Covington", "Harrison Barnes", "Jabari Parker", "Zach Randolph", "Alex Len"], 293.3729180009718, 60000]
+PG1: Mario Chalmers with projected 27.76 points and 5000 cost.
+PG2: Russell Westbrook with projected 47.10 points and 10700 cost.
+SG1: Kentavious Caldwell-Pope with projected 28.18 points and 5000 cost.
+SG2: James Harden with projected 48.07 points and 10900 cost.
+SF1: Robert Covington with projected 29.69 points and 5400 cost.
+SF2: Harrison Barnes with projected 23.16 points and 4500 cost.
+PF1: Jabari Parker with projected 28.92 points and 6000 cost.
+PF2: Zach Randolph with projected 31.33 points and 6700 cost.
+C: Alex Len with projected 29.17 points and 5800 cost.
+Total projected points is 293.37
+Total cost is 60000

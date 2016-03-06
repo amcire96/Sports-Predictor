@@ -27,9 +27,14 @@ from sklearn.ensemble import AdaBoostRegressor
 
 #print("hello1")
 
-f = open("PlayerIDMap.txt","r")
-playerIDDict = json.loads(f.readline())
-f.close()
+with open("PlayerIDMap.txt","r") as f:
+    a = f.readline()
+    if(a == ""):
+        playerIDDict = {}
+    else:
+        playerIDDict = json.loads(a)
+        print(playerIDDict)
+
 
 #converts position to number
 position_number_dict = { 
@@ -190,29 +195,28 @@ def data_date_convert(str):
 def readPlayerStatsFile():
 
     #read the file and extract the json/defaultdict
-    f = open("PlayerStats.txt","r")
-    lastModifiedStr = f.readline()
+    with open("PlayerStats.txt","r") as f:
+        lastModifiedStr = f.readline()
 
-    #checks if file is how it should be formatted
-    # (Last Modified: ... \n playerStats Dictionary)
-    # if not formatted properly, it will overwrite whole file with stats from whole season
-    if(not "Last Modified:" in lastModifiedStr):
-        currentMap = defaultdict(OrderedDict)
-        #before the season started so it will get all the data from this season
-        lastModifiedDate = datetime.date(2015, 10, 1)
-    else:
-        #print(lastModifiedStr)
-        [_,dateString] = lastModifiedStr.split(": ")
-        [month, day, year] = dateString.split("/")
-        #print("month %d, day %d, year %d" % (int(month),int(day),int(year)))
-        lastModifiedDate = datetime.date(int(year),int(month),int(day))
-        #print(lastModifiedDate)
-        #mydict = lambda: defaultdict(mydict)
-        #currentMap = mydict()
-        currentMap = json.loads(f.readline(),object_pairs_hook=OrderedDict)
-        #print(currentMap)
+        #checks if file is how it should be formatted
+        # (Last Modified: ... \n playerStats Dictionary)
+        # if not formatted properly, it will overwrite whole file with stats from whole season
+        if(not "Last Modified:" in lastModifiedStr):
+            currentMap = defaultdict(OrderedDict)
+            #before the season started so it will get all the data from this season
+            lastModifiedDate = datetime.date(2015, 10, 1)
+        else:
+            #print(lastModifiedStr)
+            [_,dateString] = lastModifiedStr.split(": ")
+            [month, day, year] = dateString.split("/")
+            #print("month %d, day %d, year %d" % (int(month),int(day),int(year)))
+            lastModifiedDate = datetime.date(int(year),int(month),int(day))
+            #print(lastModifiedDate)
+            #mydict = lambda: defaultdict(mydict)
+            #currentMap = mydict()
+            currentMap = json.loads(f.readline(),object_pairs_hook=OrderedDict)
+            #print(currentMap)
 
-    f.close()
     return (lastModifiedDate,currentMap)
 
 
@@ -637,10 +641,10 @@ def writePlayerStats(currentMap):
     todayStr = str(today.month) + "/" + str(today.day) + "/" + str(today.year)
 
     #write default dict into file -- default dict in json format
-    f = open("PlayerStats.txt","w")
-    f.write("Last Modified: " + todayStr + "\n")
-    f.write(json.dumps(currentMap))
-    f.close()
+    with open("PlayerStats.txt","w") as f:
+        f.write("Last Modified: " + todayStr + "\n")
+        f.write(json.dumps(currentMap))
+    
 
 #print("hello5")
 
@@ -1462,9 +1466,9 @@ def playerid_to_playerName(playerid):
         return playerName
         
 def writePlayerIDDict(dict):
-    f = open("PlayerIDMap.txt","w")
-    f.write(json.dumps(dict))
-    f.close()
+    with open("PlayerIDMap.txt","w") as f:
+        f.write(json.dumps(dict))
+    
 
 def calc_fanduel_points(statList):
     #return (statList[1] - statList[3]) * 2 + statList[3] * 3 + statList[5] * 1 + statList[9] * 1.2 + statList[10] * 1.5 + statList[11] * 2 + statList[12] * 2 + statList[13] * -1
@@ -1474,38 +1478,39 @@ def gen_description_and_fanduel_map(dict,csvFileName):
     playerList = []
     pred_statList = {}
 
-    f = open("final.txt","w")
-    fanduel_data_arr = fanduel_scrape(csvFileName)
+    with open("final.txt","w") as f:
+        fanduel_data_arr = fanduel_scrape(csvFileName)
     
-    for playerid, statList in dict.items():
-        name = playerid_to_playerName(int(playerid))
-        #print(name)
+        for playerid, statList in dict.items():
+            name = playerid_to_playerName(str(int(playerid)))
+            #print(name)
         
-        if(name in fanduel_data_arr["Name"].as_matrix()):
-            [row] = fanduel_data_arr.loc[fanduel_data_arr['Name'] == name].as_matrix()
-            position = row[1]
-            fanduelAvg = row[4]
-            cost = row[6]
-            injured = row[10]
+            if(name in fanduel_data_arr["Name"].as_matrix()):
+                [row] = fanduel_data_arr.loc[fanduel_data_arr['Name'] == name].as_matrix()
+                position = row[1]
+                fanduelAvg = row[4]
+                cost = row[6]
+                injured = row[10]
 
-            predicted = calc_fanduel_points(statList)
+                predicted = calc_fanduel_points(statList)
 
-            pred_statList[name] = statList
+                #print(type(statList))
+
+                pred_statList[name] = statList.tolist()
             
             
-            #print(row)
-            f.write( name + ": [" + "{0:.2f}".format(statList[0]) + " mins, " + "{0:.2f}".format(statList[1]) + "/" + 
-                    "{0:.2f}".format(statList[2]) + " fg, " + "{0:.2f}".format(statList[3]) + "/" +  "{0:.2f}".format(statList[4]) + " 3p, "
-                    + "{0:.2f}".format(statList[5]) + "/" +  "{0:.2f}".format(statList[6]) + " ft, " + "{0:.2f}".format(statList[7]) + " dreb, " + 
-                    "{0:.2f}".format(statList[8]) + " oreb, " + "{0:.2f}".format(statList[9]) + " reb, " + "{0:.2f}".format(statList[10]) + " ast, " +
-                    "{0:.2f}".format(statList[11]) + " stl, " + "{0:.2f}".format(statList[12]) + " blk, " + "{0:.2f}".format(statList[13]) + " TO, " + 
-                    "{0:.2f}".format(statList[14]) + " PF, " + "{0:.2f}".format(statList[15]) + " +/-, " + "{0:.2f}".format(statList[16]) + " pts] FANDUEL: " 
-                    + "{0:.2f}".format(predicted) + ", " + position + ", " + str(cost) + ", " + "{0:.2f}".format(fanduelAvg) + "\n")
+                #print(row)
+                f.write( name + ": [" + "{0:.2f}".format(statList[0]) + " mins, " + "{0:.2f}".format(statList[1]) + "/" + 
+                        "{0:.2f}".format(statList[2]) + " fg, " + "{0:.2f}".format(statList[3]) + "/" +  "{0:.2f}".format(statList[4]) + " 3p, "
+                        + "{0:.2f}".format(statList[5]) + "/" +  "{0:.2f}".format(statList[6]) + " ft, " + "{0:.2f}".format(statList[7]) + " dreb, " + 
+                        "{0:.2f}".format(statList[8]) + " oreb, " + "{0:.2f}".format(statList[9]) + " reb, " + "{0:.2f}".format(statList[10]) + " ast, " +
+                        "{0:.2f}".format(statList[11]) + " stl, " + "{0:.2f}".format(statList[12]) + " blk, " + "{0:.2f}".format(statList[13]) + " TO, " + 
+                        "{0:.2f}".format(statList[14]) + " PF, " + "{0:.2f}".format(statList[15]) + " +/-, " + "{0:.2f}".format(statList[16]) + " pts] FANDUEL: " 
+                        + "{0:.2f}".format(predicted) + ", " + position + ", " + str(cost) + ", " + "{0:.2f}".format(fanduelAvg) + "\n")
 
-            if(injured != "GTD" and injured != "O"):
-                playerList.append([position, predicted, cost,name])
+                if(injured != "GTD" and injured != "O"):
+                    playerList.append([position, predicted, cost,name])
 
-    f.close()
 
     with open("final_predList.txt","w") as f:
         f.write(json.dumps(pred_statList))
