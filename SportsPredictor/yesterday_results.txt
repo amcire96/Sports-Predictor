@@ -1,27 +1,36 @@
-[37, 9, 17, 4, 10, 11, 11, 0, 2, 2, 10, 0, 0, 2, 0, 3, 33]
-Kemba Walker (PG) was projected for 38.89472417725099 points at 8500 cost and actually got 48.4
+[32.73, 7.87, 17.08, 1.83, 5.67, 4.3, 4.76, 0.75, 3.23, 3.67, 4.42, 1.03, 0.16, 2.31, 2.08, 2.07, 22.73]
+[33, 7, 19, 2, 7, 10, 10, 0, 6, 6, 8, 1, 0, 1, 2, 7, 26]
+Isaiah Thomas (PG) was projected for 33.832626609874985 points at 7700 cost and actually got 46.2
 
-[30, 3, 16, 1, 6, 0, 0, 0, 2, 2, 5, 0, 0, 5, 2, -26, 7]
-D'Angelo Russell (PG) was projected for 29.07936594054 points at 6000 cost and actually got 11.899999999999999
+[35.89, 4.75, 10.69, 0.78, 2.75, 1.87, 1.08, 1.21, 4.44, 5.74, 8.94, 1.81, 0.16, 2.87, 2.65, -1.4, 12.64]
+[34, 1, 5, 0, 1, 0, 0, 2, 4, 6, 6, 2, 0, 4, 2, 11, 2]
+Rajon Rondo (PG) was projected for 33.992669792844225 points at 8100 cost and actually got 18.2
 
-[33, 4, 11, 0, 0, 6, 8, 1, 3, 4, 6, 0, 1, 2, 2, 17, 14]
-Devin Booker (SG) was projected for 25.300791795244393 points at 4700 cost and actually got 27.8
+[32.56, 5.23, 12.06, 1.83, 4.93, 2.26, 1.98, 0.69, 2.87, 3.36, 2.4, 1.81, 0.29, 1.27, 2.24, 1.51, 14.75]
+[39, 7, 12, 3, 4, 3, 3, 1, 2, 3, 4, 4, 1, 0, 2, 6, 20]
+Avery Bradley (SG) was projected for 25.314236983757002 points at 5000 cost and actually got 39.6
 
-[26, 7, 16, 0, 0, 7, 9, 2, 6, 8, 4, 3, 1, 4, 2, 4, 21]
-Dwyane Wade (SG) was projected for 34.6500326272544 points at 7500 cost and actually got 40.6
+[33.27, 5.53, 12.72, 1.83, 4.93, 2.54, 3.25, 0.82, 3.12, 3.72, 2.3, 4.0, 0.16, 1.69, 2.07, 1.69, 15.04]
+[36, 4, 13, 2, 10, 0, 0, 2, 3, 5, 2, 2, 1, 3, 2, 0, 10]
+Rodney Hood (SG) was projected for 29.575660662313275 points at 5500 cost and actually got 22.0
 
-[38, 7, 12, 1, 2, 3, 3, 1, 5, 6, 2, 2, 0, 4, 1, 6, 18]
-Gordon Hayward (SF) was projected for 40.315834767657684 points at 7400 cost and actually got 28.200000000000003
+[33.18, 5.63, 12.37, 0.0, 6.0, 2.8, 3.25, 1.2, 4.48, 5.79, 2.17, 1.81, 0.72, 1.92, 2.65, -0.32, 15.7]
+[39, 8, 21, 1, 6, 0, 0, 1, 3, 4, 0, 2, 1, 3, 2, 4, 17]
+Rudy Gay (SF) was projected for 29.043154616877963 points at 6300 cost and actually got 24.8
 
-[35, 9, 17, 0, 0, 9, 10, 2, 7, 9, 12, 3, 2, 4, 2, 24, 27]
-Giannis Antetokounmpo (SF) was projected for 40.55180734606035 points at 8300 cost and actually got 61.8
+[30.7, 4.56, 10.44, 1.83, 4.93, 2.05, 1.98, 0.97, 3.57, 4.45, 2.09, 0.47, 0.29, 0.94, 2.07, -2.35, 12.51]
+[32, 7, 11, 3, 4, 1, 1, 0, 1, 1, 2, 0, 1, 1, 2, -4, 18]
+Hollis Thompson (SF) was projected for 21.571204110306887 points at 4200 cost and actually got 23.2
 
-[39, 8, 16, 0, 0, 0, 2, 1, 4, 5, 2, 2, 1, 1, 4, 1, 16]
-Thaddeus Young (PF) was projected for 33.79486220517285 points at 7100 cost and actually got 30.0
+Ryan Anderson might have been injured or did not play
+Ryan Anderson (PF) was projected for 32.478894774357904 points at 6100 cost and actually got 0
 
-[39, 7, 18, 1, 2, 1, 1, 1, 5, 6, 4, 2, 1, 4, 3, 24, 16]
-Jabari Parker (PF) was projected for 28.85424910084971 points at 5900 cost and actually got 31.200000000000003
+[30.11, 5.34, 12.45, 1.45, 3.61, 2.6, 3.25, 1.37, 4.57, 6.19, 2.28, 0.82, 1.37, 1.27, 2.65, -1.53, 14.91]
+[35, 6, 17, 0, 4, 1, 2, 2, 5, 7, 2, 0, 2, 1, 3, -2, 13]
+Kristaps Porzingis (PF) was projected for 28.874311343136483 points at 5800 cost and actually got 27.4
 
-[15, 4, 7, 0, 0, 0, 0, 2, 4, 6, 1, 0, 0, 0, 1, -6, 8]
-Jordan Hill (C) was projected for 29.433579047098565 points at 4300 cost and actually got 16.7
+[35.25, 8.91, 19.5, 0.78, 2.75, 5.47, 10.25, 2.2, 7.31, 10.01, 3.93, 1.81, 1.37, 1.33, 3.11, -2.0, 25.72]
+[37, 11, 23, 1, 3, 1, 2, 5, 15, 20, 4, 1, 2, 1, 1, 14, 24]
+DeMarcus Cousins (C) was projected for 48.630007486720004 points at 11100 cost and actually got 59.0
 
+Total Predicted points is 283.3127663801887 at 59800 cost, and total actual points is 260.40

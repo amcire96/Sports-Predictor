@@ -1,12 +1,12 @@
-[["PG", "PG", "SG", "SG", "SF", "SF", "PF", "PF", "C"], [27.763287246386973, 47.09682927425445, 28.177507305495805, 48.07158266402894, 29.69172029044654, 23.155152431556026, 28.915227832961634, 31.330208381307994, 29.171402574533456], [5000, 10700, 5000, 10900, 5400, 4500, 6000, 6700, 5800], ["Mario Chalmers", "Russell Westbrook", "Kentavious Caldwell-Pope", "James Harden", "Robert Covington", "Harrison Barnes", "Jabari Parker", "Zach Randolph", "Alex Len"], 293.3729180009718, 60000]
-PG1: Mario Chalmers with projected 27.76 points and 5000 cost.
-PG2: Russell Westbrook with projected 47.10 points and 10700 cost.
-SG1: Kentavious Caldwell-Pope with projected 28.18 points and 5000 cost.
-SG2: James Harden with projected 48.07 points and 10900 cost.
-SF1: Robert Covington with projected 29.69 points and 5400 cost.
-SF2: Harrison Barnes with projected 23.16 points and 4500 cost.
-PF1: Jabari Parker with projected 28.92 points and 6000 cost.
-PF2: Zach Randolph with projected 31.33 points and 6700 cost.
-C: Alex Len with projected 29.17 points and 5800 cost.
-Total projected points is 293.37
-Total cost is 60000
+[["PG", "PG", "SG", "SG", "SF", "SF", "PF", "PF", "C"], [33.832626609874985, 33.992669792844225, 25.314236983757002, 29.575660662313275, 29.043154616877963, 21.571204110306887, 32.478894774357904, 28.874311343136483, 48.630007486720004], [7700, 8100, 5000, 5500, 6300, 4200, 6100, 5800, 11100], ["Isaiah Thomas", "Rajon Rondo", "Avery Bradley", "Rodney Hood", "Rudy Gay", "Hollis Thompson", "Ryan Anderson", "Kristaps Porzingis", "DeMarcus Cousins"], 283.3127663801887, 59800]
+PG1: Isaiah Thomas with projected 33.83 points and 7700 cost.
+PG2: Rajon Rondo with projected 33.99 points and 8100 cost.
+SG1: Avery Bradley with projected 25.31 points and 5000 cost.
+SG2: Rodney Hood with projected 29.58 points and 5500 cost.
+SF1: Rudy Gay with projected 29.04 points and 6300 cost.
+SF2: Hollis Thompson with projected 21.57 points and 4200 cost.
+PF1: Ryan Anderson with projected 32.48 points and 6100 cost.
+PF2: Kristaps Porzingis with projected 28.87 points and 5800 cost.
+C: DeMarcus Cousins with projected 48.63 points and 11100 cost.
+Total projected points is 283.31
+Total cost is 59800

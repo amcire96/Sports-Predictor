@@ -33,7 +33,7 @@ with open("PlayerIDMap.txt","r") as f:
         playerIDDict = {}
     else:
         playerIDDict = json.loads(a)
-        print(playerIDDict)
+        #print(playerIDDict)
 
 
 #converts position to number
@@ -267,7 +267,7 @@ def create_todays_playerMap():
         #first get game data not specific to each player (time,date,score,team numbers etc)
         gameDataList = []
         #print(boxScoreTree.xpath("//span/text()"))
-        game_time_info = boxScoreTree.xpath("//div[@class='game-status']/span[position()=2]/@data-date")[0]
+        game_time_info = boxScoreTree.xpath("//div[@class='game-status']/span/@data-date")[0]
         #print(game_time_info)
         [m,d,y,t] = data_date_convert(game_time_info)
 
@@ -1751,12 +1751,17 @@ def check_yesterday_fanduel(playerMap):
     with open("final_predList.txt","r") as f:
         predList = json.loads(f.readline())
     with open("yesterday_results.txt","w") as f:
-
+        totalPred = 0
+        totalActual = 0
+        totalCost = 0
         for i in range(0,len(resultList[0])):
             name = resultList[3][i]
             points = resultList[1][i]
             position = resultList[0][i]
             cost= resultList[2][i]
+
+            totalPred += points
+            totalCost += cost
 
             #print(name)
             playeridStr = str(playerIDDict[name])
@@ -1775,12 +1780,14 @@ def check_yesterday_fanduel(playerMap):
                 f.write(name + " might have been injured or did not play\n")
                 f.write(name + " (" + position + ") was projected for " + str(points) + " points at " + str(cost) + " cost and actually got " + str(0) + "\n")
             else:
-                j.write(json.dumps(predictedStatsList)+"\n")
+                f.write(json.dumps([float("{0:.2f}".format(x)) for x in predictedStatsList])+"\n")
                 statsList = lastGameStats[12:]
                 f.write(json.dumps(statsList)+"\n")
                 actual_fanduel = calc_fanduel_points(statsList)
+                totalActual += actual_fanduel
                 f.write(name + " (" + position + ") was projected for " + str(points) + " points at " + str(cost) + " cost and actually got " + str(actual_fanduel) + "\n")
             f.write("\n")
+        f.write("Total Predicted points is " + str(totalPred) + " at " + str(totalCost) + " cost, and total actual points is " + "{0:.2f}".format(totalActual)) 
 
 
 
