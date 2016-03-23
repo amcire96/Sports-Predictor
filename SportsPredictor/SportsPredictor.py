@@ -102,22 +102,7 @@ import Scraper
 
 
 
-def fanduel_scrape(csvFile):
 
-    #TEMPORARY UNTIL I FIGURE OUT HOW TO SCRAPE FANDUEL PROPERLY
-
-    fanduel_data = pd.read_csv(csvFile)
-    fanduel_data_headers = list(fanduel_data.columns.values)
-    #fanduel_data = fanduel_data._get_numeric_data()
-    fanduel_data["Name"] = (fanduel_data["First Name"] + " " + fanduel_data["Last Name"])
-   # fanduel_data.drop(fanduel_data.columns[[2,3]],axis=1)
-    #fanduel_data.drop("Last Name",axis=1)
-    #fanduel_data_arr = fanduel_data.as_matrix()#[:,:12]
-
-    
-   # print(fanduel_data_arr)
-
-    return fanduel_data
 
 
 
@@ -189,13 +174,19 @@ print("Reading previously stored player-stats map")
 isUpdated = (lastModifiedDate == datetime.date.today())
 
 print("Getting data about players playing today")
-today_playerMap = Scraper.create_todays_playerMap(Scraper.getProjStarters())
+today_playerMap = Scraper.create_todays_playerMap()
+projStarters = Scraper.getProjStarters()
+
+today_playerMap = Util.addStarting(today_playerMap,projStarters)
+print(today_playerMap)
 
 if(not isUpdated):
     print("Creating Player Map")
     gameids = Scraper.getNewGameIDs(lastModifiedDate)
     #print(gameids)
     currentMap = Scraper.createPlayerMap(gameids,currentMap)
+
+    # print(currentMap)
     
     print("Done creating and writing Player Map")
 
@@ -258,7 +249,7 @@ print("Combining Fanduel Data with Predicted Data")
 
 
 
-playerList = ReadWriteFiles.gen_description_and_fanduel_map(dictionary,csvFileName,playerIDDict)
+playerList = ReadWriteFiles.gen_description_and_fanduel_map(dictionary,csvFileName)
 
 #write_playerList(playerList)
 

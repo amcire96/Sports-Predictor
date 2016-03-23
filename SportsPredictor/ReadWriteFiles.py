@@ -5,6 +5,12 @@ import csv
 import pandas as pd
 import datetime
 from collections import OrderedDict
+from collections import defaultdict
+
+import Scraper
+import Util
+
+
 
 def writePlayerStats(currentMap):
 
@@ -264,7 +270,7 @@ def gen_description_and_fanduel_map(dict,csvFileName):
     pred_statList = {}
 
     with open("final.txt","w") as f:
-        fanduel_data_arr = fanduel_scrape(csvFileName)
+        fanduel_data_arr = Util.fanduel_scrape(csvFileName)
     
         for playerid, statList in dict.items():
             name = Scraper.playerid_to_playerName(str(int(playerid)))
@@ -277,7 +283,7 @@ def gen_description_and_fanduel_map(dict,csvFileName):
                 cost = row[6]
                 injured = row[10]
 
-                predicted = calc_fanduel_points(statList)
+                predicted = Util.calc_fanduel_points(statList)
 
                 #print(type(statList))
 

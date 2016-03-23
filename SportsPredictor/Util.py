@@ -3,8 +3,12 @@ from lxml import html
 import requests
 import datetime
 import numpy as np
+import pandas as pd
+
+from nameparser import HumanName
 
 import ReadWriteFiles
+import Scraper
 
 
 #converts position to number
@@ -227,21 +231,77 @@ def playerStatsConvert(statsList):
 
 
 
+def fanduel_scrape(csvFile):
+
+    #TEMPORARY UNTIL I FIGURE OUT HOW TO SCRAPE FANDUEL PROPERLY
+
+    fanduel_data = pd.read_csv(csvFile)
+    fanduel_data_headers = list(fanduel_data.columns.values)
+    #fanduel_data = fanduel_data._get_numeric_data()
+    fanduel_data["Name"] = (fanduel_data["First Name"] + " " + fanduel_data["Last Name"])
+   # fanduel_data.drop(fanduel_data.columns[[2,3]],axis=1)
+    #fanduel_data.drop("Last Name",axis=1)
+    #fanduel_data_arr = fanduel_data.as_matrix()#[:,:12]
+
+
+   # print(fanduel_data_arr)
+
+    return fanduel_data
+
+
+
+def addStarting(playerMap,projStarters):
+    # print(playerMap)
+    for playerid,gameMap in playerMap.items():
+        for gameid,gameList in gameMap.items():
+            isStarting = 1 if Scraper.playerid_to_playerName(playerid) in projStarters else 0
+            gameList.append(isStarting)
+    return playerMap
+
 def convertRotowireList(rotoWireList,urlList):
 
     playerIDDict = ReadWriteFiles.readPlayerIDMap()
 
     #print("\noriginal list")
     #print(rotoWireList)
+
+    returnedList = []
+
+    for i in range(0,len(rotoWireList)):
+        rotoname = rotoWireList[i]
+
+        #takes care of cases where name matches
+        #and when first and last name both match -> regardless of Jr. suffix, middle name
+        if(rotoname in playerIDDict.keys() or (HumanName(rotoname).first + " " + HumanName(rotoname).last) in playerIDDict.keys()):
+            returnedList.append(rotoname)
+        else:
+            if(rotoname[1] == "."):
+                tempLst = []
+                for playerName in playerIDDict.keys():
+                    if(HumanName(playerName).first == HumanName(rotoname).first and playerName[0] == rotoname[0]):
+                        tempLst.append(playerName)
+                if len(tempLst) == 1:
+                    returnedList.append(tempLst[0])
+                else:
+                    (html.fromstring(requests.get(urlList[i]).content)).xpath("//h1[position()=1]/text()")[0]
+
+            else:
+                for playerName in playerIDDict.keys():
+                    if(HumanName(playerName).first == HumanName(rotoname).first and HumanName(playerName).last == HumanName(rotoname).last):
+                        returnedList.append(playerName)
+
+
     
-    convertedList = [x if (x in playerIDDict.keys()) else [k for (k,v) in playerIDDict.items() if (x[1] == "." and x.split(" ")[1] in k and x[0] == k[0]) or x in k] for x in rotoWireList]
-    convertedList = [x[0] if not type(x[0]) == list else x[0][0] if len(x[0])==0 else (html.fromstring(requests.get(x[1]).content)).xpath("//h1[position()=1]/text()")[0] for x in zip(convertedList,urlList)]
+    # convertedList = [x if (x in playerIDDict.keys()) else [k for (k,v) in playerIDDict.items() if (x[1] == "." and x.split(" ")[1] in k and x[0] == k[0]) or x in k] for x in rotoWireList]
+
+    print(returnedList)
+    # convertedList = [x[0] if not type(x[0]) == list else x[0][0] if len(x[0])==0 else (html.fromstring(requests.get(x[1]).content)).xpath("//h1[position()=1]/text()")[0] for x in zip(convertedList,urlList)]
 
     #[(html.fromstring(requests.get(x).content)).xpath("//h1[position()=1]/text()")[0] for x in starterFullURLList]
 
     #print("\nconverted list")
     #print(convertedList)
-    return convertedList
+    return returnedList
 
 
 

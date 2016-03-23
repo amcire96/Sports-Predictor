@@ -9,7 +9,7 @@ import ReadWriteFiles
 
 
 def playername_to_id(playername):
-    playerIDDict = readPlayerIDMap()
+    playerIDDict = ReadWriteFiles.readPlayerIDMap()
     return playerIDDict[playername]
 
 def playerid_to_playerName(playerid):
@@ -341,7 +341,7 @@ def getNewGameIDs(lastModifiedDate):
 
 #generate playerMap for today's game -> will be what we are predicting
 #map with have list of m, d, y, time, ownTeam, otherTeam, away/home
-def create_todays_playerMap(starterList):
+def create_todays_playerMap():
     today_playerMap = defaultdict(OrderedDict)
 
     schedulePage = requests.get("http://espn.go.com/nba/schedule")
@@ -407,8 +407,9 @@ def create_todays_playerMap(starterList):
 
         for playerid in awayPlayeridList:
             playername = playerid_to_playerName(playerid)
-            isStarting = 1 if playername in starterList else 0
-            today_playerMap[playerid][gameid] = [m,d,y,t,Util.team_dict[awayTeamName],Util.team_dict[homeTeamName],0,isStarting]
+            # print(playername)
+
+            today_playerMap[playerid][gameid] = [m,d,y,t,Util.team_dict[awayTeamName],Util.team_dict[homeTeamName],0]
 
     
         homeTeamURL = boxScoreTree.xpath("//div[@class='competitors']/div[@class='team home']/div[@class='content']/div[@class='team-container']/div[@class='team-info']/a/@href")[0]
@@ -422,7 +423,7 @@ def create_todays_playerMap(starterList):
         #print(homePlayeridList)
         for playerid in homePlayeridList:
             playername = playerid_to_playerName(playerid)
-            isStarting = 1 if playername in starterList else 0
-            today_playerMap[playerid][gameid] = [m,d,y,t,Util.team_dict[homeTeamName],Util.team_dict[awayTeamName],1,isStarting]
+            # print(playername)
+            today_playerMap[playerid][gameid] = [m,d,y,t,Util.team_dict[homeTeamName],Util.team_dict[awayTeamName],1]
     
     return today_playerMap
