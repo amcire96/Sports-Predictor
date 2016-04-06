@@ -1,12 +1,12 @@
-[["PG", "PG", "SG", "SG", "SF", "SF", "PF", "PF", "C"], [41.026721843414705, 29.094343229599314, 27.847214651991557, 33.25793352198988, 27.645843164297244, 22.142754684653262, 36.85265486968166, 36.53548194932219, 30.3274064604903], [8900, 6000, 5700, 6900, 5800, 4400, 8300, 8000, 6000], ["Damian Lillard", "Deron Williams", "Kentavious Caldwell-Pope", "C.J. McCollum", "Trevor Ariza", "Hollis Thompson", "Draymond Green", "Dirk Nowitzki", "Robin Lopez"], 284.73035437544013, 60000]
-PG1: Damian Lillard with projected 41.03 points and 8900 cost.
-PG2: Deron Williams with projected 29.09 points and 6000 cost.
-SG1: Kentavious Caldwell-Pope with projected 27.85 points and 5700 cost.
-SG2: C.J. McCollum with projected 33.26 points and 6900 cost.
-SF1: Trevor Ariza with projected 27.65 points and 5800 cost.
-SF2: Hollis Thompson with projected 22.14 points and 4400 cost.
-PF1: Draymond Green with projected 36.85 points and 8300 cost.
-PF2: Dirk Nowitzki with projected 36.54 points and 8000 cost.
-C: Robin Lopez with projected 30.33 points and 6000 cost.
-Total projected points is 284.73
+[["PG", "PG", "SG", "SG", "SF", "SF", "PF", "PF", "C"], [22.760126696477748, 27.394246019304962, 33.813048697805925, 25.4027930990402, 31.297876670333476, 40.57197137407404, 33.34241532988926, 30.68093220385224, 53.30914123126013], [4000, 4800, 7100, 5000, 6400, 8800, 6700, 6400, 10800], ["Isaiah Canaan", "Tony Parker", "Klay Thompson", "Gary Harris", "Rudy Gay", "Kawhi Leonard", "Jabari Parker", "Tobias Harris", "DeMarcus Cousins"], 298.57255132203795, 60000]
+PG1: Isaiah Canaan with projected 22.76 points and 4000 cost.
+PG2: Tony Parker with projected 27.39 points and 4800 cost.
+SG1: Klay Thompson with projected 33.81 points and 7100 cost.
+SG2: Gary Harris with projected 25.40 points and 5000 cost.
+SF1: Rudy Gay with projected 31.30 points and 6400 cost.
+SF2: Kawhi Leonard with projected 40.57 points and 8800 cost.
+PF1: Jabari Parker with projected 33.34 points and 6700 cost.
+PF2: Tobias Harris with projected 30.68 points and 6400 cost.
+C: DeMarcus Cousins with projected 53.31 points and 10800 cost.
+Total projected points is 298.57
 Total cost is 60000

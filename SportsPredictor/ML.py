@@ -8,34 +8,53 @@ from sklearn.grid_search import RandomizedSearchCV
 from sklearn.ensemble import AdaBoostRegressor
 
 from collections import deque
+from collections import defaultdict
+from collections import OrderedDict
 
 import numpy as np
+import datetime
 
+
+import Scraper
 import Util
 
 
 
 
-def generate_features(currentMap,today_stats):
+def generate_features(currentMap,today_stats,injuredIDMap, injuredTodayMap):
+     # print(type(currentMap))
+
      #print(today_stats)
      #featureList = OrderedDict(list)
      trainingFeatureList = deque([])
      testingFeatureList = deque([])
 
      todayFeatureList = deque([])
+
+     completeFeatureMap = defaultdict(OrderedDict)
+
+     allGameIDs = set()
      
      for playerid,orderedDict in currentMap.items():
          
          #prevGameIds = deque([])
          #19 stats for each game
-         seasonGameStatsTotals = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-         prevGameStats = []
+         seasonGameStatsTotals = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+         prevGameStats = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
          #use deques with max size to keep track of most recent n games
          prev2GamesStats = deque([],2)
          prev3GamesStats = deque([],3)
          prev5GamesStats = deque([],5)
          prev10GamesStats = deque([],10)
          prev20GamesStats = deque([],20)
+
+
+         prev2GamesStats.append([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
+         prev3GamesStats.append([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
+         prev5GamesStats.append([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
+         prev10GamesStats.append([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
+         prev20GamesStats.append([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
+
 
          count = 0
 
@@ -47,22 +66,32 @@ def generate_features(currentMap,today_stats):
 
 
          for gameid,statList in orderedDict.items():
-             gameFeature = [int(playerid)] + [int(gameid)] + statList[:8]
 
-             #don't do anything for the first game
-             if (count != 0):
-                 gameFeature += prevGameStats
-                 gameFeature += Util.avgStats(prev2GamesStats)
-                 gameFeature += Util.avgStats(prev3GamesStats)
-                 gameFeature += Util.avgStats(prev5GamesStats)
-                 gameFeature += Util.avgStats(prev10GamesStats)
-                 gameFeature += Util.avgStats(prev20GamesStats)
-                 gameFeature += (np.array(seasonGameStatsTotals) / count).tolist()
+             allGameIDs.add(gameid)
+
+             #count represents how many games the player has previously played
+             gameFeature = [int(playerid)] + [int(gameid)] + statList[:8] + [count]
+
+
+             gameFeature += prevGameStats
+             gameFeature += Util.avgStats(prev2GamesStats)
+             gameFeature += Util.avgStats(prev3GamesStats)
+             gameFeature += Util.avgStats(prev5GamesStats)
+             gameFeature += Util.avgStats(prev10GamesStats)
+             gameFeature += Util.avgStats(prev20GamesStats)
+             gameFeature += (np.array(seasonGameStatsTotals) / max(count,1)).tolist()
                  
-                 if(count <= 0.8 * (gamesForPlayer-1)):
-                     trainingFeatureList.append(gameFeature)
-                 else:
-                     testingFeatureList.append(gameFeature)
+             if(count <= 0.8 * (gamesForPlayer-1)):
+                 trainingFeatureList.append(gameFeature)
+             else:
+                 testingFeatureList.append(gameFeature)
+             # print("HERE gameid " + str(gameid))
+             completeFeatureMap[playerid][gameid] = gameFeature
+             # print(len(gameFeature))
+             # if(len(gameFeature) != 158):
+             #     print(gameFeature)
+
+
 
              count+=1
              #prevGameIds += [gameid]     
@@ -73,13 +102,145 @@ def generate_features(currentMap,today_stats):
              prev10GamesStats.append(statList[8:])
              prev20GamesStats.append(statList[8:])
              seasonGameStatsTotals = [x + y for x, y in zip(seasonGameStatsTotals,statList[8:])]
+
+
         
          if(playerid in today_stats):
-             (key,val) = today_stats[playerid].popitem()
-             feature = [int(playerid)] + [int(key)] + val[:8] + prevGameStats + Util.avgStats(prev2GamesStats) + Util.avgStats(prev3GamesStats) + Util.avgStats(prev5GamesStats) + Util.avgStats(prev10GamesStats) + Util.avgStats(prev20GamesStats) + (np.array(seasonGameStatsTotals) / count).tolist()
+             (todayGameid,statsList) = today_stats[playerid].popitem()
+             feature = [int(playerid)] + [int(todayGameid)] + statsList[:8] + [count] + prevGameStats + Util.avgStats(prev2GamesStats) + Util.avgStats(prev3GamesStats) + Util.avgStats(prev5GamesStats) + Util.avgStats(prev10GamesStats) + Util.avgStats(prev20GamesStats) + (np.array(seasonGameStatsTotals) / count).tolist()
              todayFeatureList.append(feature)
 
+
+
+     for feature in todayFeatureList:
+        todayGameid = str(feature[1])
+        ownTeamNum = feature[6]
+        injuredList = injuredTodayMap[ownTeamNum]
+
+        injuredListFeatures = []
+
+
+        if(len(injuredList) == 0):
+            injuredListFeatures = awayInjuredListFeatures = np.zeros((1,148))
+
+        else:
+
+            for injuredName in injuredList:
+                injuredID = Scraper.playername_to_id(injuredName)
+
+                for (gameid) in reversed(list(completeFeatureMap[injuredID].keys())):
+
+                #get the last features that the injured player had
+                    if(gameid <= todayGameid):
+                        gameStatsList = completeFeatureMap[injuredID][gameid]
+
+                        # weight = gameStatsList[10]
+                        injuredListFeatures.append(gameStatsList[10:])
+                        # print(len(gameStatsList[10:]))
+
+                        break
+            injuredListFeatures = np.array(injuredListFeatures)
+        # print(injuredListFeatures.shape)
+
+
+        meanInjuredStats = np.mean(injuredListFeatures,0)
+        stdInjuredStats = np.std(injuredListFeatures,0)
+
+        feature += (meanInjuredStats.tolist() + stdInjuredStats.tolist())
+
+
          #print(list(todayFeatureList))
+
+
+     injuredMap = {}
+
+     for currentGameID in allGameIDs:
+        #create injury features
+        # print(currentGameID)
+        # print(type(currentGameID))
+
+        #for both the away team and home team
+        awayInjuredIDList = injuredIDMap[currentGameID][0]
+        awayInjuredListFeatures = []
+        for awayInjuredID in awayInjuredIDList:
+            # print(type(completeFeatureMap[injuredID].keys()))
+            # print("new awayInjuredID " + str(awayInjuredID))
+            for (gameid) in reversed(list(completeFeatureMap[awayInjuredID].keys())):
+                # print(gameid)
+                # print(type(gameid))
+                #get the last features that the injured player had
+                if(gameid <= currentGameID):
+                    gameStatsList = completeFeatureMap[awayInjuredID][gameid]
+
+                    # weight = gameStatsList[10]
+                    awayInjuredListFeatures.append(gameStatsList[10:])
+                    # print(len(gameStatsList[10:]))
+
+                    # print(awayInjuredID + " " + currentGameID)
+                    # print(gameStatsList)
+                    break
+        if(len(awayInjuredListFeatures) == 0):
+            awayInjuredListFeatures = np.zeros((1,148))
+        else:
+            awayInjuredListFeatures = np.array(awayInjuredListFeatures)
+        # print(injuredListFeatures.shape)
+        awayMeanInjuredStats = np.mean(awayInjuredListFeatures,0)
+        awayStdInjuredStats = np.std(awayInjuredListFeatures,0)
+        # print(awayMeanInjuredStats.shape)
+        # print(awayStdInjuredStats.shape)
+
+
+
+
+        homeInjuredIDList = injuredIDMap[currentGameID][1]
+        homeInjuredListFeatures = []
+        for homeInjuredID in homeInjuredIDList:
+            # print(type(completeFeatureMap[injuredID].keys()))
+            # print(reversed(list(completeFeatureMap[homeInjuredID].keys())))
+            for (gameid) in reversed(list(completeFeatureMap[homeInjuredID].keys())):
+                #get the last features that the injured player had
+                if(gameid <= currentGameID):
+                    gameStatsList = completeFeatureMap[homeInjuredID][gameid]
+
+                    # weight = gameStatsList[10]
+                    homeInjuredListFeatures.append(gameStatsList[10:])
+                    # print(len(gameStatsList[10:]))
+
+                    # print(homeInjuredID + " " + currentGameID)
+                    # print(gameStatsList)
+                    break
+        if(len(homeInjuredListFeatures) == 0):
+            homeInjuredListFeatures = np.zeros((1,148))
+        else:
+            homeInjuredListFeatures = np.array(homeInjuredListFeatures)
+        # print(injuredListFeatures.shape)
+        homeMeanInjuredStats = np.mean(homeInjuredListFeatures,0)
+        homeStdInjuredStats = np.std(homeInjuredListFeatures,0)
+        # print(homeMeanInjuredStats.shape)
+        # print(homeStdInjuredStats.shape)
+
+
+
+
+        injuredMap[currentGameID] = (awayMeanInjuredStats.tolist() + awayStdInjuredStats.tolist(), homeMeanInjuredStats.tolist() + homeStdInjuredStats.tolist())
+     # print(injuredMap)
+
+
+
+     #add injuryfeatures to previously computed features
+     for gameFeature in list(trainingFeatureList):
+
+         gameid = gameFeature[1]
+         isAway = gameFeature[8]
+         # print("HERE: " + str(gameid))
+         gameFeature += injuredMap[str(gameid)][isAway]
+
+     for gameFeature in list(testingFeatureList):
+         gameid = gameFeature[1]
+         isAway = gameFeature[8]
+         # print("HERE: " + str(gameid))
+         gameFeature += injuredMap[str(gameid)][isAway]
+
 
      return (np.array(list(trainingFeatureList)),np.array(list(testingFeatureList)), np.array(list(todayFeatureList)))
 
@@ -100,13 +261,13 @@ def generate_labels(currentMap):
          count = 0
 
          for gameid,statList in orderedDict.items():
-             if(count != 0):
-                 gameLabels = statList[12:] 
-                 if(count <= 0.8 * (gamesForPlayer-1)):
-                     trainingLabelsList.append(gameLabels)
-                 else:
-                     testingLabelsList.append(gameLabels)
-             count += 1
+
+            gameLabels = statList[12:]
+            if(count <= 0.8 * (gamesForPlayer-1)):
+                trainingLabelsList.append(gameLabels)
+            else:
+                testingLabelsList.append(gameLabels)
+            count += 1
     return (np.array(list(trainingLabelsList)), np.array(list(testingLabelsList)))
 
 

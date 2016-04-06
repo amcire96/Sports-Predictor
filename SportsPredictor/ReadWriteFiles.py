@@ -24,6 +24,14 @@ def writePlayerStats(currentMap):
         f.write(json.dumps(currentMap))
 
 
+def writeInjuredIDMap(injuredIDMap):
+    with open("InjuredIDMap.txt","w") as f:
+        f.write(json.dumps(injuredIDMap))
+
+
+def readInjuredIDMap():
+    with open("InjuredIDMap.txt","r") as f:
+        return json.loads(f.readline())
 
 
 
@@ -32,78 +40,78 @@ def writeFeaturesFiles(trainingFeatures,testingFeatures,todayFeatureList):
 
     with open('TodayFeatures.csv','w',newline='') as csvfile:
         writer = csv.writer(csvfile)
-        writer.writerow(["playerid","gameid","month","day","year","time","ownTeam","otherTeam","away/home",
-                         "lastgame-ownscore","lastgame-otherscore", "lastgame-ot", "lastgame-started","lastgame-position","lastgame-mins","lastgame-fgm","lastgame-fga",
+        writer.writerow(["playerid","gameid","month","day","year","time","ownTeam","otherTeam","away/home","starting","games played",
+                         "lastgame-ownscore","lastgame-otherscore", "lastgame-ot", "lastgame-position","lastgame-mins","lastgame-fgm","lastgame-fga",
                          "lastgame-3pm","lastgame-3pa","lastgame-ftm","lastgame-fta","lastgame-dreb","lastgame-oreb","lastgame-reb",
-                         "lastgame-ast","lastgame-stl","lastgame-blk","lastgame-to","lastgame-pf","lastgame+/-","lastgame-pts",                     
-                         "last2games-ownscore","last2games-otherscore", "last2games-ot", "last2games-started","last2games-position","last2games-mins","last2games-fgm","last2games-fga","last2games-3pm",
+                         "lastgame-ast","lastgame-stl","lastgame-blk","lastgame-to","lastgame-pf","lastgame+/-","lastgame-pts",
+                         "last2games-ownscore","last2games-otherscore", "last2games-ot","last2games-position","last2games-mins","last2games-fgm","last2games-fga","last2games-3pm",
                          "last2games-3pa","last2games-ftm","last2games-fta","last2games-dreb","last2games-oreb","last2games-reb",
-                         "last2games-ast","last2games-stl","last2games-blk","last2games-to","last2games-pf","last2games+/-","last2games-pts",                     
-                         "last3games-ownscore","last3games-otherscore", "last3games-ot", "last3games-started","last3games-position","last3games-mins","last3games-fgm","last3games-fga","last3games-3pm",
+                         "last2games-ast","last2games-stl","last2games-blk","last2games-to","last2games-pf","last2games+/-","last2games-pts",
+                         "last3games-ownscore","last3games-otherscore", "last3games-ot", "last3games-position","last3games-mins","last3games-fgm","last3games-fga","last3games-3pm",
                          "last3games-3pa","last3games-ftm","last3games-fta","last3games-dreb","last3games-oreb","last3games-reb",
                          "last3games-ast","last3games-stl","last3games-blk","last3games-to","last3games-pf","last3games+/-","last3games-pts",
-                         "last5games-ownscore","last5games-otherscore", "last5games-ot", "last5games-started","last5games-position","last5games-mins","last5games-fgm","last5games-fga","last5games-3pm",
+                         "last5games-ownscore","last5games-otherscore", "last5games-ot", "last5games-position","last5games-mins","last5games-fgm","last5games-fga","last5games-3pm",
                          "last5games-3pa","last5games-ftm","last5games-fta","last5games-dreb","last5games-oreb","last5games-reb",
                          "last5games-ast","last5games-stl","last5games-blk","last5games-to","last5games-pf","last5games+/-","last5games-pts",
-                         "last10games-ownscore","last10games-otherscore", "last10games-ot", "last10games-started","last10games-position","last10games-mins","last10games-fgm","last10games-fga","last10games-3pm",
+                         "last10games-ownscore","last10games-otherscore", "last10games-ot", "last10games-position","last10games-mins","last10games-fgm","last10games-fga","last10games-3pm",
                          "last10games-3pa","last10games-ftm","last10games-fta","last10games-dreb","last10games-oreb","last10games-reb",
                          "last10games-ast","last10games-stl","last10games-blk","last10games-to","last10games-pf","last10games+/-","last10games-pts",
-                         "last20games-ownscore","last20games-otherscore", "last20games-ot", "last20games-started","last20games-position","last20games-mins","last20games-fgm","last20games-fga","last20games-3pm",
+                         "last20games-ownscore","last20games-otherscore", "last20games-ot", "last20games-position","last20games-mins","last20games-fgm","last20games-fga","last20games-3pm",
                          "last20games-3pa","last20games-ftm","last20games-fta","last20games-dreb","last20games-oreb","last2games-reb",
-                         "last20games-ast","last20games-stl","last20games-blk","last20games-to","last20games-pf","last20games+/-","last20games-pts",                     
-                         "season-ownscore","season-otherscore", "season-ot", "season-started","season-position","season-mins","season-fgm","season-fga","season-3pm","season-3pa",
+                         "last20games-ast","last20games-stl","last20games-blk","last20games-to","last20games-pf","last20games+/-","last20games-pts",
+                         "season-ownscore","season-otherscore", "season-ot", "season-position","season-mins","season-fgm","season-fga","season-3pm","season-3pa",
                          "season-ftm","season-fta","season-dreb","season-oreb","season-reb",
                          "season-ast","season-stl","season-blk","season-to","season-pf","season+/-","season-pts"])
         writer.writerows(todayFeatureList)
 
     with open('TrainingFeatures.csv', 'w', newline='') as csvfile:
         writer = csv.writer(csvfile)
-        writer.writerow(["playerid","gameid","month","day","year","time","ownTeam","otherTeam","away/home",
-                         "lastgame-ownscore","lastgame-otherscore", "lastgame-ot", "lastgame-started","lastgame-position","lastgame-mins","lastgame-fgm","lastgame-fga",
+        writer.writerow(["playerid","gameid","month","day","year","time","ownTeam","otherTeam","away/home","starting","games played",
+                         "lastgame-ownscore","lastgame-otherscore", "lastgame-ot", "lastgame-position","lastgame-mins","lastgame-fgm","lastgame-fga",
                          "lastgame-3pm","lastgame-3pa","lastgame-ftm","lastgame-fta","lastgame-dreb","lastgame-oreb","lastgame-reb",
-                         "lastgame-ast","lastgame-stl","lastgame-blk","lastgame-to","lastgame-pf","lastgame+/-","lastgame-pts",                     
-                         "last2games-ownscore","last2games-otherscore", "last2games-ot", "last2games-started","last2games-position","last2games-mins","last2games-fgm","last2games-fga","last2games-3pm",
+                         "lastgame-ast","lastgame-stl","lastgame-blk","lastgame-to","lastgame-pf","lastgame+/-","lastgame-pts",
+                         "last2games-ownscore","last2games-otherscore", "last2games-ot","last2games-position","last2games-mins","last2games-fgm","last2games-fga","last2games-3pm",
                          "last2games-3pa","last2games-ftm","last2games-fta","last2games-dreb","last2games-oreb","last2games-reb",
-                         "last2games-ast","last2games-stl","last2games-blk","last2games-to","last2games-pf","last2games+/-","last2games-pts",                     
-                         "last3games-ownscore","last3games-otherscore", "last3games-ot", "last3games-started","last3games-position","last3games-mins","last3games-fgm","last3games-fga","last3games-3pm",
+                         "last2games-ast","last2games-stl","last2games-blk","last2games-to","last2games-pf","last2games+/-","last2games-pts",
+                         "last3games-ownscore","last3games-otherscore", "last3games-ot", "last3games-position","last3games-mins","last3games-fgm","last3games-fga","last3games-3pm",
                          "last3games-3pa","last3games-ftm","last3games-fta","last3games-dreb","last3games-oreb","last3games-reb",
                          "last3games-ast","last3games-stl","last3games-blk","last3games-to","last3games-pf","last3games+/-","last3games-pts",
-                         "last5games-ownscore","last5games-otherscore", "last5games-ot", "last5games-started","last5games-position","last5games-mins","last5games-fgm","last5games-fga","last5games-3pm",
+                         "last5games-ownscore","last5games-otherscore", "last5games-ot", "last5games-position","last5games-mins","last5games-fgm","last5games-fga","last5games-3pm",
                          "last5games-3pa","last5games-ftm","last5games-fta","last5games-dreb","last5games-oreb","last5games-reb",
                          "last5games-ast","last5games-stl","last5games-blk","last5games-to","last5games-pf","last5games+/-","last5games-pts",
-                         "last10games-ownscore","last10games-otherscore", "last10games-ot", "last10games-started","last10games-position","last10games-mins","last10games-fgm","last10games-fga","last10games-3pm",
+                         "last10games-ownscore","last10games-otherscore", "last10games-ot", "last10games-position","last10games-mins","last10games-fgm","last10games-fga","last10games-3pm",
                          "last10games-3pa","last10games-ftm","last10games-fta","last10games-dreb","last10games-oreb","last10games-reb",
                          "last10games-ast","last10games-stl","last10games-blk","last10games-to","last10games-pf","last10games+/-","last10games-pts",
-                         "last20games-ownscore","last20games-otherscore", "last20games-ot", "last20games-started","last20games-position","last20games-mins","last20games-fgm","last20games-fga","last20games-3pm",
+                         "last20games-ownscore","last20games-otherscore", "last20games-ot", "last20games-position","last20games-mins","last20games-fgm","last20games-fga","last20games-3pm",
                          "last20games-3pa","last20games-ftm","last20games-fta","last20games-dreb","last20games-oreb","last2games-reb",
-                         "last20games-ast","last20games-stl","last20games-blk","last20games-to","last20games-pf","last20games+/-","last20games-pts",                     
-                         "season-ownscore","season-otherscore", "season-ot", "season-started","season-position","season-mins","season-fgm","season-fga","season-3pm","season-3pa",
+                         "last20games-ast","last20games-stl","last20games-blk","last20games-to","last20games-pf","last20games+/-","last20games-pts",
+                         "season-ownscore","season-otherscore", "season-ot", "season-position","season-mins","season-fgm","season-fga","season-3pm","season-3pa",
                          "season-ftm","season-fta","season-dreb","season-oreb","season-reb",
                          "season-ast","season-stl","season-blk","season-to","season-pf","season+/-","season-pts"])
         writer.writerows(trainingFeatures)
 
     with open('TestingFeatures.csv', 'w', newline='') as csvfile:
         writer = csv.writer(csvfile)
-        writer.writerow(["playerid","gameid","month","day","year","time","ownTeam","otherTeam","away/home",
-                         "lastgame-ownscore","lastgame-otherscore", "lastgame-ot", "lastgame-started","lastgame-position","lastgame-mins","lastgame-fgm","lastgame-fga",
+        writer.writerow(["playerid","gameid","month","day","year","time","ownTeam","otherTeam","away/home","starting","games played",
+                         "lastgame-ownscore","lastgame-otherscore", "lastgame-ot", "lastgame-position","lastgame-mins","lastgame-fgm","lastgame-fga",
                          "lastgame-3pm","lastgame-3pa","lastgame-ftm","lastgame-fta","lastgame-dreb","lastgame-oreb","lastgame-reb",
                          "lastgame-ast","lastgame-stl","lastgame-blk","lastgame-to","lastgame-pf","lastgame+/-","lastgame-pts",                     
-                         "last2games-ownscore","last2games-otherscore", "last2games-ot", "last2games-started","last2games-position","last2games-mins","last2games-fgm","last2games-fga","last2games-3pm",
+                         "last2games-ownscore","last2games-otherscore", "last2games-ot","last2games-position","last2games-mins","last2games-fgm","last2games-fga","last2games-3pm",
                          "last2games-3pa","last2games-ftm","last2games-fta","last2games-dreb","last2games-oreb","last2games-reb",
                          "last2games-ast","last2games-stl","last2games-blk","last2games-to","last2games-pf","last2games+/-","last2games-pts",                     
-                         "last3games-ownscore","last3games-otherscore", "last3games-ot", "last3games-started","last3games-position","last3games-mins","last3games-fgm","last3games-fga","last3games-3pm",
+                         "last3games-ownscore","last3games-otherscore", "last3games-ot", "last3games-position","last3games-mins","last3games-fgm","last3games-fga","last3games-3pm",
                          "last3games-3pa","last3games-ftm","last3games-fta","last3games-dreb","last3games-oreb","last3games-reb",
                          "last3games-ast","last3games-stl","last3games-blk","last3games-to","last3games-pf","last3games+/-","last3games-pts",
-                         "last5games-ownscore","last5games-otherscore", "last5games-ot", "last5games-started","last5games-position","last5games-mins","last5games-fgm","last5games-fga","last5games-3pm",
+                         "last5games-ownscore","last5games-otherscore", "last5games-ot", "last5games-position","last5games-mins","last5games-fgm","last5games-fga","last5games-3pm",
                          "last5games-3pa","last5games-ftm","last5games-fta","last5games-dreb","last5games-oreb","last5games-reb",
                          "last5games-ast","last5games-stl","last5games-blk","last5games-to","last5games-pf","last5games+/-","last5games-pts",
-                         "last10games-ownscore","last10games-otherscore", "last10games-ot", "last10games-started","last10games-position","last10games-mins","last10games-fgm","last10games-fga","last10games-3pm",
+                         "last10games-ownscore","last10games-otherscore", "last10games-ot", "last10games-position","last10games-mins","last10games-fgm","last10games-fga","last10games-3pm",
                          "last10games-3pa","last10games-ftm","last10games-fta","last10games-dreb","last10games-oreb","last10games-reb",
                          "last10games-ast","last10games-stl","last10games-blk","last10games-to","last10games-pf","last10games+/-","last10games-pts",
-                         "last20games-ownscore","last20games-otherscore", "last20games-ot", "last20games-started","last20games-position","last20games-mins","last20games-fgm","last20games-fga","last20games-3pm",
+                         "last20games-ownscore","last20games-otherscore", "last20games-ot", "last20games-position","last20games-mins","last20games-fgm","last20games-fga","last20games-3pm",
                          "last20games-3pa","last20games-ftm","last20games-fta","last20games-dreb","last20games-oreb","last2games-reb",
                          "last20games-ast","last20games-stl","last20games-blk","last20games-to","last20games-pf","last20games+/-","last20games-pts",                     
-                         "season-ownscore","season-otherscore", "season-ot", "season-started","season-position","season-mins","season-fgm","season-fga","season-3pm","season-3pa",
+                         "season-ownscore","season-otherscore", "season-ot", "season-position","season-mins","season-fgm","season-fga","season-3pm","season-3pa",
                          "season-ftm","season-fta","season-dreb","season-oreb","season-reb",
                          "season-ast","season-stl","season-blk","season-to","season-pf","season+/-","season-pts"])
         writer.writerows(testingFeatures)
@@ -369,7 +377,7 @@ def check_yesterday_fanduel(playerMap):
                 f.write(json.dumps([float("{0:.2f}".format(x)) for x in predictedStatsList])+"\n")
                 statsList = lastGameStats[12:]
                 f.write(json.dumps(statsList)+"\n")
-                actual_fanduel = calc_fanduel_points(statsList)
+                actual_fanduel = Util.calc_fanduel_points(statsList)
                 totalActual += actual_fanduel
                 f.write(name + " (" + position + ") was projected for " + str(points) + " points at " + str(cost) + " cost and actually got " + str(actual_fanduel) + "\n")
             f.write("\n")

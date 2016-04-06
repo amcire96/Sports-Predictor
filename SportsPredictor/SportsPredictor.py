@@ -166,10 +166,10 @@ import Scraper
 
 
 
-
-
 #playerIDDict = ReadWriteFiles.readPlayerIDMap()
-print("Reading previously stored player-stats map")
+
+
+# print("Reading previously stored player-stats map")
 (lastModifiedDate,currentMap) = ReadWriteFiles.readPlayerStatsFile()
 isUpdated = (lastModifiedDate == datetime.date.today())
 
@@ -178,16 +178,29 @@ today_playerMap = Scraper.create_todays_playerMap()
 projStarters = Scraper.getProjStarters()
 
 today_playerMap = Util.addStarting(today_playerMap,projStarters)
-print(today_playerMap)
+print(json.dumps(today_playerMap))
+
+
+
+
+(lastModifiedDate,currentMap) = ReadWriteFiles.readPlayerStatsFile()
+
+injuredTodayMap = Scraper.getInjuredPlayers()
+injuredIDMap = ReadWriteFiles.readInjuredIDMap()
+
+
 
 if(not isUpdated):
     print("Creating Player Map")
     gameids = Scraper.getNewGameIDs(lastModifiedDate)
     #print(gameids)
-    currentMap = Scraper.createPlayerMap(gameids,currentMap)
+    (currentMap,injuredIDMap) = Scraper.createPlayerMap(gameids,currentMap)
+    #
+    # ReadWriteFiles.writePlayerStats(currentMap)
+    # ReadWriteFiles.writeInjuredIDMap(injuredIDMap)
 
     # print(currentMap)
-    
+
     print("Done creating and writing Player Map")
 
 
@@ -205,10 +218,9 @@ if(checkFanduel.lower() == "y" or checkFanduel.lower() == "yes"):
     ReadWriteFiles.check_yesterday_fanduel(currentMap)
     print("Done checking. Wrote results to 'yesterday_results.txt'")
 
-
 if(not isUpdated):
     print("Generating features/labels")
-    (trainingFeatures_arr,testingFeatures_arr,todayFeatures_arr) = ML.generate_features(currentMap,today_playerMap)
+    (trainingFeatures_arr,testingFeatures_arr,todayFeatures_arr) = ML.generate_features(currentMap,today_playerMap,injuredIDMap,injuredTodayMap)
     
 
     (trainingLabels_arr,testingLabels_arr) = ML.generate_labels(currentMap)
@@ -231,7 +243,6 @@ if(not isUpdated):
 else:
     preds = ReadWriteFiles.readPredsFile()
     print("Predictions are already updated -- just reading predictions file now, so not creating new ones")
-
 
 
 #WAS GOING TO SKIP IF ALREADY UPDATED BUT BEST TO GIVE USER THE OPTION OF SPECIFYING ANOTHER TOURNAMENT TODAY
@@ -268,6 +279,7 @@ if(not isUpdated):
     ReadWriteFiles.writeFeaturesFiles(trainingFeatures_arr,testingFeatures_arr,todayFeatures_arr)
     ReadWriteFiles.writeLabelsCSVFiles(trainingLabels_arr,testingLabels_arr)
     ReadWriteFiles.write_all_today_preds(preds)
+    ReadWriteFiles.writeInjuredIDMap(injuredIDMap)
 #final_preds could be different if player list from fanduel is updated
 ReadWriteFiles.write_final_preds(result)
 

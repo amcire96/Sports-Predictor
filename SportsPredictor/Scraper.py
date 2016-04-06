@@ -45,6 +45,9 @@ def createPlayerMap(gameids,currentMap):
     #playerMap = OrderedDict()
 
     print(sorted(gameids,key=lambda x: x[1]))
+
+    #will keep track of playerids of injured players on both teams
+    injuredIDMap = ReadWriteFiles.readInjuredIDMap()
     
     for gameid in sorted(gameids,key=lambda x: x[1]):
         gameid = gameid[0]
@@ -124,6 +127,10 @@ def createPlayerMap(gameids,currentMap):
             #print(homePlayeridList)
 
 
+
+
+
+            awayInjuredIDList = []
             #gets player stats for away players and appends that to the game stats
             for playerid in awayStarteridList:
                 xPathStatsString = "//tr[td/a/@href='http://espn.go.com/nba/player/_/id/" + playerid + "']/*/text()"
@@ -150,6 +157,7 @@ def createPlayerMap(gameids,currentMap):
                     #playerMap[playerid] = OrderedDict({gameid:(gameStatsList+playerStatsList)})
 
                 else:
+                    awayInjuredIDList.append(playerid)
                     print(playerid + " is injured, so stats from game will not count")
 
 
@@ -180,12 +188,13 @@ def createPlayerMap(gameids,currentMap):
                     #playerMap[playerid] = OrderedDict({gameid:(gameStatsList+playerStatsList)})
 
                 else:
+                    awayInjuredIDList.append(playerid)
                     print(playerid + " is injured, so stats from game will not count")
         
 
 
 
-
+            homeInjuredIDList = []
             #gets player stats for home players and appends that to the game stats
             for playerid in homeStarteridList:
                 xPathStatsString = "//tr[td/a/@href='http://espn.go.com/nba/player/_/id/" + playerid + "']/*/text()"
@@ -213,6 +222,7 @@ def createPlayerMap(gameids,currentMap):
                     playerMap[playerid][gameid]=(gameStatsList+playerStatsList)
                     #playerMap[playerid] = OrderedDict({gameid:(gameStatsList+playerStatsList)})
                 else:
+                    homeInjuredIDList.append(playerid)
                     print(playerid + " is injured, so stats from game will not count")
 
 
@@ -243,8 +253,10 @@ def createPlayerMap(gameids,currentMap):
                     playerMap[playerid][gameid]=(gameStatsList+playerStatsList)
                     #playerMap[playerid] = OrderedDict({gameid:(gameStatsList+playerStatsList)})
                 else:
+                    homeInjuredIDList.append(playerid)
                     print(playerid + " is injured, so stats from game will not count")
 
+            injuredIDMap[gameid] = (awayInjuredIDList,homeInjuredIDList)
 
         except (IndexError):
             print("Game " + gameid + " does not exist")
@@ -262,28 +274,61 @@ def createPlayerMap(gameids,currentMap):
             #print(type(gameid))
             currentMap[playerid][gameid] = statList
 
-    
-    return currentMap
+
+
+    return (currentMap,injuredIDMap)
 
 
 
 
 def getInjuredPlayers():
     projURL = "http://www.rotowire.com/basketball/nba_lineups.htm"
+    # projURL = "http://www.rotowire.com/basketball/nba_lineups.htm?date=tomorrow"
     projPage = requests.get(projURL)
     projTree = html.fromstring(projPage.content)
 
-    injuredNameList = projTree.xpath("//div[@class='dlineups-half equalheight']/div[@class='dlineups-vplayer']/div/a/text() | //div[@class='dlineups-half equalheight']/div[@class='dlineups-hplayer']/div/a/text()")
 
-    injuredURLList = projTree.xpath("//div[@class='dlineups-half equalheight']/div[@class='dlineups-vplayer']/div/a/@href | //div[@class='dlineups-half equalheight']/div[@class='dlineups-hplayer']/div/a/@href")
-    injuredURLList = ["http://www.rotowire.com" + x for x in injuredURLList]
+    awayTeamNames = projTree.xpath("//div[@class='span15 dlineups-mainbox']/div[@class='span15 dlineups-mainbar']/div[@class='dlineups-mainbar-away']/a/text()")
+    # print(awayTeamNames)
 
-    injuredDesignationList = projTree.xpath("//div[@class='dlineups-half equalheight']/div[@class='dlineups-vplayer']/div/b/text() | //div[@class='dlineups-half equalheight']/div[@class='dlineups-hplayer']/div/b/text() | //div[@class='dlineups-half equalheight']/div[@class='dlineups-vplayer']/div/text() | //div[@class='dlineups-half equalheight']/div[@class='dlineups-hplayer']/div/text()")
+    homeTeamNames = projTree.xpath("//div[@class='span15 dlineups-mainbox']/div[@class='span15 dlineups-mainbar']/div[@class='dlineups-mainbar-home']/a/text()")
+    # print(homeTeamNames)
+
+
+    injuredMap = {}
+
+    for awayTeamName in awayTeamNames:
+        teamNum = Util.team_dict[awayTeamName]
+        injuredNameList = projTree.xpath("//div[div/div/a = '" + awayTeamName + "']/div[@class='span15']/div[@class='span15']/div[@class='dlineups-half equalheight']/div[@class='dlineups-vplayer']/div/a/text()")
+        injuredURLList = projTree.xpath("//div[div/div/a = '" + awayTeamName + "']/div[@class='span15']/div[@class='span15']/div[@class='dlineups-half equalheight']/div[@class='dlineups-vplayer']/div/a/@href")
+        injuredURLList = ["http://www.rotowire.com" + x for x in injuredURLList]
+        injuredDesignationList = projTree.xpath("//div[div/div/a = '" + awayTeamName + "']/div[@class='span15']/div[@class='span15']/div[@class='dlineups-half equalheight']/div[@class='dlineups-vplayer']/div/b/text()")
+        finalList = [x[0] for x in zip(Util.convertRotowireList(injuredNameList,injuredURLList),injuredDesignationList) if x[1] != "inactive"]
+        injuredMap[teamNum] = finalList
+
+
+    for homeTeamName in homeTeamNames:
+        teamNum = Util.team_dict[homeTeamName]
+        injuredNameList = projTree.xpath("//div[div/div/a = '" + homeTeamName + "']/div[@class='span15']/div[@class='span15']/div[@class='dlineups-half equalheight']/div[@class='dlineups-hplayer']/div/a/text()")
+        injuredURLList = projTree.xpath("//div[div/div/a = '" + homeTeamName + "']/div[@class='span15']/div[@class='span15']/div[@class='dlineups-half equalheight']/div[@class='dlineups-hplayer']/div/a/@href")
+        injuredURLList = ["http://www.rotowire.com" + x for x in injuredURLList]
+        injuredDesignationList = projTree.xpath("//div[div/div/a = '" + homeTeamName + "']/div[@class='span15']/div[@class='span15']/div[@class='dlineups-half equalheight']/div[@class='dlineups-hplayer']/div/text()")
+        finalList = [x[0] for x in zip(Util.convertRotowireList(injuredNameList,injuredURLList),injuredDesignationList) if x[1] != "inactive"]
+        injuredMap[teamNum] = finalList
+
+
+    # injuredNameList = projTree.xpath("//div[@class='dlineups-half equalheight']/div[@class='dlineups-vplayer']/div/a/text() | //div[@class='dlineups-half equalheight']/div[@class='dlineups-hplayer']/div/a/text()")
+    #
+    # injuredURLList = projTree.xpath("//div[@class='dlineups-half equalheight']/div[@class='dlineups-vplayer']/div/a/@href | //div[@class='dlineups-half equalheight']/div[@class='dlineups-hplayer']/div/a/@href")
+    # injuredURLList = ["http://www.rotowire.com" + x for x in injuredURLList]
+
+    # injuredDesignationList = projTree.xpath("//div[@class='dlineups-half equalheight']/div[@class='dlineups-vplayer']/div/b/text() | //div[@class='dlineups-half equalheight']/div[@class='dlineups-hplayer']/div/b/text() | //div[@class='dlineups-half equalheight']/div[@class='dlineups-vplayer']/div/text() | //div[@class='dlineups-half equalheight']/div[@class='dlineups-hplayer']/div/text()")
 
     #print(injuredDesignationList)
-    
 
-    return [x for x in zip(Util.convertRotowireList(injuredNameList,injuredURLList),injuredDesignationList)]
+
+
+    return injuredMap
 
 
 
@@ -344,6 +389,8 @@ def getNewGameIDs(lastModifiedDate):
 def create_todays_playerMap():
     today_playerMap = defaultdict(OrderedDict)
 
+
+
     schedulePage = requests.get("http://espn.go.com/nba/schedule")
     scheduleTree = html.fromstring(schedulePage.content)
     #print(scheduleTree.xpath("//div[@class='basketball']/div[@id='sched-container']/div[position()=2]/table/caption"))
@@ -360,7 +407,7 @@ def create_todays_playerMap():
         todaysGameIDs = [x.split("=")[1] for x in scheduleTree.xpath("//div[@class='basketball']/div[@id='sched-container']/div[position()=3]/table/tbody/tr/td[position()=3]/a/@href")]
        # todayGameTimes = [x+" ET" for x in scheduleTree.xpath("//div[@class='basketball']/div[@id='sched-container']/div[position()=3]/table/tbody/tr/td[position()=3]/a//text()")]
         if(date != datetime.date.today()):
-            print("Actually Exiting")
+            print("Something is wrong with ESPN's schedule page")
             exit()
     else:
         todaysGameIDs = [x.split("=")[1] for x in scheduleTree.xpath("//div[@class='basketball']/div[@id='sched-container']/div[position()=2]/table/tbody/tr/td[position()=3]/a/@href")]
@@ -406,7 +453,7 @@ def create_todays_playerMap():
         #print(awayRosterURL)
 
         for playerid in awayPlayeridList:
-            playername = playerid_to_playerName(playerid)
+            # playername = playerid_to_playerName(playerid)
             # print(playername)
 
             today_playerMap[playerid][gameid] = [m,d,y,t,Util.team_dict[awayTeamName],Util.team_dict[homeTeamName],0]
@@ -422,7 +469,7 @@ def create_todays_playerMap():
         homePlayeridList = [x.split("player-46-")[1] for x in homeRosterTree.xpath("//tr[contains(@class,'player-46')]/@class")]
         #print(homePlayeridList)
         for playerid in homePlayeridList:
-            playername = playerid_to_playerName(playerid)
+            # playername = playerid_to_playerName(playerid)
             # print(playername)
             today_playerMap[playerid][gameid] = [m,d,y,t,Util.team_dict[homeTeamName],Util.team_dict[awayTeamName],1]
     

@@ -258,6 +258,9 @@ def addStarting(playerMap,projStarters):
             gameList.append(isStarting)
     return playerMap
 
+
+
+
 def convertRotowireList(rotoWireList,urlList):
 
     playerIDDict = ReadWriteFiles.readPlayerIDMap()
@@ -294,7 +297,7 @@ def convertRotowireList(rotoWireList,urlList):
     
     # convertedList = [x if (x in playerIDDict.keys()) else [k for (k,v) in playerIDDict.items() if (x[1] == "." and x.split(" ")[1] in k and x[0] == k[0]) or x in k] for x in rotoWireList]
 
-    print(returnedList)
+    # print(returnedList)
     # convertedList = [x[0] if not type(x[0]) == list else x[0][0] if len(x[0])==0 else (html.fromstring(requests.get(x[1]).content)).xpath("//h1[position()=1]/text()")[0] for x in zip(convertedList,urlList)]
 
     #[(html.fromstring(requests.get(x).content)).xpath("//h1[position()=1]/text()")[0] for x in starterFullURLList]
@@ -323,8 +326,6 @@ def calc_fanduel_points(statList):
 def avgStats(gameStatsList):
     gameCount = len(gameStatsList)
     return (np.array([sum(x) for x in zip(*gameStatsList)]) / gameCount).tolist()
-
-
 
 
 
