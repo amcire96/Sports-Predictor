@@ -102,22 +102,7 @@ import Scraper
 
 
 
-def fanduel_scrape(csvFile):
 
-    #TEMPORARY UNTIL I FIGURE OUT HOW TO SCRAPE FANDUEL PROPERLY
-
-    fanduel_data = pd.read_csv(csvFile)
-    fanduel_data_headers = list(fanduel_data.columns.values)
-    #fanduel_data = fanduel_data._get_numeric_data()
-    fanduel_data["Name"] = (fanduel_data["First Name"] + " " + fanduel_data["Last Name"])
-   # fanduel_data.drop(fanduel_data.columns[[2,3]],axis=1)
-    #fanduel_data.drop("Last Name",axis=1)
-    #fanduel_data_arr = fanduel_data.as_matrix()#[:,:12]
-
-    
-   # print(fanduel_data_arr)
-
-    return fanduel_data
 
 
 
@@ -181,22 +166,41 @@ def fanduel_scrape(csvFile):
 
 
 
-
-
 #playerIDDict = ReadWriteFiles.readPlayerIDMap()
-print("Reading previously stored player-stats map")
+
+
+# print("Reading previously stored player-stats map")
 (lastModifiedDate,currentMap) = ReadWriteFiles.readPlayerStatsFile()
 isUpdated = (lastModifiedDate == datetime.date.today())
 
 print("Getting data about players playing today")
-today_playerMap = Scraper.create_todays_playerMap(Scraper.getProjStarters())
+today_playerMap = Scraper.create_todays_playerMap()
+projStarters = Scraper.getProjStarters()
+
+today_playerMap = Util.addStarting(today_playerMap,projStarters)
+print(json.dumps(today_playerMap))
+
+
+
+
+(lastModifiedDate,currentMap) = ReadWriteFiles.readPlayerStatsFile()
+
+injuredTodayMap = Scraper.getInjuredPlayers()
+injuredIDMap = ReadWriteFiles.readInjuredIDMap()
+
+
 
 if(not isUpdated):
     print("Creating Player Map")
     gameids = Scraper.getNewGameIDs(lastModifiedDate)
     #print(gameids)
-    currentMap = Scraper.createPlayerMap(gameids,currentMap)
-    
+    (currentMap,injuredIDMap) = Scraper.createPlayerMap(gameids,currentMap)
+    #
+    # ReadWriteFiles.writePlayerStats(currentMap)
+    # ReadWriteFiles.writeInjuredIDMap(injuredIDMap)
+
+    # print(currentMap)
+
     print("Done creating and writing Player Map")
 
 
@@ -214,10 +218,9 @@ if(checkFanduel.lower() == "y" or checkFanduel.lower() == "yes"):
     ReadWriteFiles.check_yesterday_fanduel(currentMap)
     print("Done checking. Wrote results to 'yesterday_results.txt'")
 
-
 if(not isUpdated):
     print("Generating features/labels")
-    (trainingFeatures_arr,testingFeatures_arr,todayFeatures_arr) = ML.generate_features(currentMap,today_playerMap)
+    (trainingFeatures_arr,testingFeatures_arr,todayFeatures_arr) = ML.generate_features(currentMap,today_playerMap,injuredIDMap,injuredTodayMap)
     
 
     (trainingLabels_arr,testingLabels_arr) = ML.generate_labels(currentMap)
@@ -242,7 +245,6 @@ else:
     print("Predictions are already updated -- just reading predictions file now, so not creating new ones")
 
 
-
 #WAS GOING TO SKIP IF ALREADY UPDATED BUT BEST TO GIVE USER THE OPTION OF SPECIFYING ANOTHER TOURNAMENT TODAY
 #don't need to write/read file then
 dictionary = dict(zip(today_playerIDS, preds))
@@ -258,7 +260,7 @@ print("Combining Fanduel Data with Predicted Data")
 
 
 
-playerList = ReadWriteFiles.gen_description_and_fanduel_map(dictionary,csvFileName,playerIDDict)
+playerList = ReadWriteFiles.gen_description_and_fanduel_map(dictionary,csvFileName)
 
 #write_playerList(playerList)
 
@@ -277,6 +279,7 @@ if(not isUpdated):
     ReadWriteFiles.writeFeaturesFiles(trainingFeatures_arr,testingFeatures_arr,todayFeatures_arr)
     ReadWriteFiles.writeLabelsCSVFiles(trainingLabels_arr,testingLabels_arr)
     ReadWriteFiles.write_all_today_preds(preds)
+    ReadWriteFiles.writeInjuredIDMap(injuredIDMap)
 #final_preds could be different if player list from fanduel is updated
 ReadWriteFiles.write_final_preds(result)
 
