@@ -18,157 +18,6 @@ import ReadWriteFiles
 import Scraper
 
 
-
-
-
-
-
-#print("hello1")
-
-
-
-
-
-
-
-
-    
-
-
-
-
-
-#lastModifiedDate = datetime.date(2015,11,1)
-
-#print("hello2")
-#print(lastModifiedDate)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#print(json.dumps(currentMap))
-
-#print("hello4")
-
-    
-
-#print("hello5")
-
-
-#print(playerMap)
-
-
-#f = open(playerDataFilePath, "w")
-#for playerid in playerMap.keys():
-
-    #f.writeline(playerMap[playerid])
-    #print(playerid)
-    #print(playerMap[playerid])
-
-#f.close()
-
-
-
-    
-
-
-
-
-
-
-    
-
-
-
-
-
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-    #payload = { "email" : "amcire96@gmail.com",
-    #           "password" : "kathy_ma",
-    #           "cc_session_id" : "sa2s9a83e7f9mq3jtldma09bu1" ,
-    #           "cc_action" : "cca_login",
-    #           "cc_success_url" : "/games"}
-
-    #with requests.Session() as s:
-    #    p = s.post("https://www.fanduel.com/c/CCAuth", data = payload)
-    #    print(p.text)
-
-    #r = requests.get("https://www.fanduel.com/games",auth=("amcire96@gmail.com","kathy_ma"))
-    #print(r.text)
-
-
-    #homePage = requests.get("https://www.fanduel.com/games")
-    #homeTree = html.fromstring(homePage.content)
-    ##firstContestID = homeTree.xpath("//table[@class='contest-list']/tbody/tr[position()=1]/td[@class='enter-contest-cell']/a/@href")
-    #firstContestID = homeTree.xpath("//*")
-    #print(firstContestID)
-
-    #[a,_] = contestID.split("-")
-    #url = "https://www.fanduel.com/games/" + a + "/contests/" + contestID + "/enter"
-
-    #contestPage = requests.get(url)
-    #contestTree = html.fromstring(contestPage.content)
-    #playerlist = contestTree.xpath("//table/*")
-    ##print(playerlist)
-
-    #print(contestTree)
-
-
-
-
-
-
-
-
-
-
-
-#def getPlayerList(contestID):
-#    [a,_] = contestID.split("-")
-#    url = "https://www.fanduel.com/games/" + a + "/contests/" + contestID + "/enter"
-
-#    contestPage = requests.get(url)
-#    contestTree = html.fromstring(contestPage.content)
-#    playerlist = contestTree.xpath("//body/*")
-#    print(playerlist)
-
-    #print(contestTree)
-
-
-
-
-
-
-
-
-
-
-#playerIDDict = ReadWriteFiles.readPlayerIDMap()
-
-
 # print("Reading previously stored player-stats map")
 (lastModifiedDate,currentMap) = ReadWriteFiles.readPlayerStatsFile()
 isUpdated = (lastModifiedDate == datetime.date.today())
@@ -179,8 +28,6 @@ projStarters = Scraper.getProjStarters()
 
 today_playerMap = Util.addStarting(today_playerMap,projStarters)
 print(json.dumps(today_playerMap))
-
-
 
 
 (lastModifiedDate,currentMap) = ReadWriteFiles.readPlayerStatsFile()
@@ -285,28 +132,45 @@ ReadWriteFiles.write_final_preds(result)
 
 
 
+# Experimenting with auto login to FanDuel
+    #payload = { "email" : "amcire96@gmail.com",
+    #           "password" : "kathy_ma",
+    #           "cc_session_id" : "sa2s9a83e7f9mq3jtldma09bu1" ,
+    #           "cc_action" : "cca_login",
+    #           "cc_success_url" : "/games"}
+
+    #with requests.Session() as s:
+    #    p = s.post("https://www.fanduel.com/c/CCAuth", data = payload)
+    #    print(p.text)
+
+    #r = requests.get("https://www.fanduel.com/games",auth=("amcire96@gmail.com","kathy_ma"))
+    #print(r.text)
 
 
+    #homePage = requests.get("https://www.fanduel.com/games")
+    #homeTree = html.fromstring(homePage.content)
+    ##firstContestID = homeTree.xpath("//table[@class='contest-list']/tbody/tr[position()=1]/td[@class='enter-contest-cell']/a/@href")
+    #firstContestID = homeTree.xpath("//*")
+    #print(firstContestID)
+
+    #[a,_] = contestID.split("-")
+    #url = "https://www.fanduel.com/games/" + a + "/contests/" + contestID + "/enter"
+
+    #contestPage = requests.get(url)
+    #contestTree = html.fromstring(contestPage.content)
+    #playerlist = contestTree.xpath("//table/*")
+    ##print(playerlist)
+
+    #print(contestTree)
 
 
+#def getPlayerList(contestID):
+#    [a,_] = contestID.split("-")
+#    url = "https://www.fanduel.com/games/" + a + "/contests/" + contestID + "/enter"
 
+#    contestPage = requests.get(url)
+#    contestTree = html.fromstring(contestPage.content)
+#    playerlist = contestTree.xpath("//body/*")
+#    print(playerlist)
 
-
-
-
-
-
-
-
-
-
-
-#IDK IF I AM GOING TO KEEP WORKING ON SCRAPING FANDUEL
-#IT SEEMS DIFFICULT / AGAINST THE TERMS OF SERVICE
-#getPlayerList("14619-22471320")
-#fanduel_scrape("FanDuel-NBA-2016-02-03-14597-players-list.csv")
-
-
-#(trainingFeatures_arr,trainingLabels_arr,todayFeatures_arr,testingFeatures_arr,testingLabels_arr) = readCSVFiles()
-#preds = create_preds(trainingFeatures_arr,trainingLabels_arr,testingFeatures_arr,testingLabels_arr,todayFeatures_arr)
-#write_all_today_preds(preds)
+    #print(contestTree)
